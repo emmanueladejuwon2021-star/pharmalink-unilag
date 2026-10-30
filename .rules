@@ -1,0 +1,11 @@
+# PharmaLink UNILAG Coding Rules
+
+Follow AGENTS.md, .agents/RULES.md, and the complete BLUEPRINT.md.
+
+Key non-negotiables:
+- Real functionality only (no placeholders or fake data).
+- Server-side authorization and validation.
+- Compact, responsive, accessible UI.
+- Honest status updates in README checklist.
+- No direct messages, no paid materials, UNILAG Pharmacy students only.
+- Preserve existing work and inspect before changing.
