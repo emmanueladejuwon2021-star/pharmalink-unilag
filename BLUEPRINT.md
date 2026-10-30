@@ -1,1 +1,1 @@
-See full content - updating via script if needed
+Loading full content from local file
