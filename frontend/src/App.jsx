@@ -11,6 +11,8 @@ import {
   LogOut
 } from 'lucide-react';
 import AuthModal from './components/AuthModal';
+import VerificationPanel from './components/VerificationPanel';
+import AdminVerificationList from './components/AdminVerificationList';
 
 export default function App() {
   const [health, setHealth] = useState({
@@ -22,6 +24,7 @@ export default function App() {
 
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(() => localStorage.getItem('pharmalink_token') || null);
+  const [activeTab, setActiveTab] = useState('feed');
 
   useEffect(() => {
     fetch('/api/health')
@@ -109,12 +112,12 @@ export default function App() {
           {health.status === 'online' ? (
             <span className="status-pill online" data-testid="api-status-online">
               <span className="indicator-dot"></span>
-              Core API Connected
+              PharmaLink Connected
             </span>
           ) : (
             <span className="status-pill offline" data-testid="api-status-offline">
               <span className="indicator-dot"></span>
-              {health.loading ? 'Connecting API...' : 'API Detached'}
+              {health.loading ? 'Connecting...' : 'Connecting to Server'}
             </span>
           )}
         </div>
@@ -124,31 +127,57 @@ export default function App() {
       <div className="app-body">
         {/* Sidebar */}
         <aside className="sidebar">
-          <a href="#feed" className="nav-link active">
+          <a
+            href="#feed"
+            className={`nav-link ${activeTab === 'feed' ? 'active' : ''}`}
+            onClick={() => setActiveTab('feed')}
+            data-testid="nav-feed"
+          >
             <Compass />
             <span>Social Feed</span>
           </a>
-          <a href="#vault" className="nav-link">
+          <a
+            href="#vault"
+            className={`nav-link ${activeTab === 'vault' ? 'active' : ''}`}
+            onClick={() => setActiveTab('vault')}
+            data-testid="nav-vault"
+          >
             <BookOpen />
             <span>Materials Vault</span>
           </a>
-          <a href="#levels" className="nav-link">
-            <GraduationCap />
-            <span>Levels (200L–500L)</span>
-          </a>
-          <a href="#verification" className="nav-link">
+          <a
+            href="#verification"
+            className={`nav-link ${activeTab === 'verification' ? 'active' : ''}`}
+            onClick={() => setActiveTab('verification')}
+            data-testid="nav-verification"
+          >
             <ShieldCheck />
             <span>Student Verification</span>
           </a>
-          <a href="#pans" className="nav-link">
+          <a
+            href="#pans"
+            className={`nav-link ${activeTab === 'pans' ? 'active' : ''}`}
+            onClick={() => setActiveTab('pans')}
+            data-testid="nav-pans"
+          >
             <Bell />
             <span>PANS Official</span>
           </a>
-          <a href="#quizzes" className="nav-link">
+          <a
+            href="#quizzes"
+            className={`nav-link ${activeTab === 'quizzes' ? 'active' : ''}`}
+            onClick={() => setActiveTab('quizzes')}
+            data-testid="nav-quizzes"
+          >
             <Layers />
             <span>Daily Dose Quizzes</span>
           </a>
-          <a href="#support" className="nav-link">
+          <a
+            href="#support"
+            className={`nav-link ${activeTab === 'support' ? 'active' : ''}`}
+            onClick={() => setActiveTab('support')}
+            data-testid="nav-support"
+          >
             <HelpCircle />
             <span>Help & Guidelines</span>
           </a>
@@ -157,47 +186,84 @@ export default function App() {
         {/* Content */}
         <main className="main-content">
           <div className="notice-box">
-            <strong>Welcome to PharmaLink UNILAG:</strong> A dedicated, private academic and social network restricted strictly to verified 200L–500L Pharmacy students at the University of Lagos.
+            <strong>Welcome to PharmaLink UNILAG:</strong> A private, trusted community created exclusively for University of Lagos Faculty of Pharmacy students (200L to 500L).
           </div>
 
           {!user ? (
             <AuthModal onAuthSuccess={handleAuthSuccess} />
           ) : (
-            <div className="card" data-testid="authenticated-dashboard">
-              <h2 className="card-title">Welcome back, {user.fullName}!</h2>
-              <p className="card-subtitle">
-                Academic Level: <strong>{user.level}</strong> &bull; Verification Status:{' '}
-                <span style={{
-                  textTransform: 'uppercase',
-                  fontWeight: 600,
-                  color: user.verificationStatus === 'verified' ? 'var(--success)' : 'var(--accent)'
-                }}>
-                  {user.verificationStatus}
-                </span>
-              </p>
+            <>
+              {activeTab === 'verification' ? (
+                <>
+                  <VerificationPanel
+                    user={user}
+                    token={token}
+                    onStatusUpdated={(newStatus) => {
+                      setUser((prev) => ({ ...prev, verificationStatus: newStatus }));
+                    }}
+                  />
+                  {/* Admin review tool */}
+                  <AdminVerificationList
+                    token={token}
+                    onReviewCompleted={(res) => {
+                      if (res.student && res.student.email === user.email) {
+                        setUser((prev) => ({ ...prev, verificationStatus: res.student.verificationStatus }));
+                      }
+                    }}
+                  />
+                </>
+              ) : (
+                <div className="card" data-testid="authenticated-dashboard">
+                  <h2 className="card-title">Welcome back, {user.fullName}!</h2>
+                  <p className="card-subtitle">
+                    Class Level: <strong>{user.level}</strong> &bull; Verification Status:{' '}
+                    <span style={{
+                      textTransform: 'uppercase',
+                      fontWeight: 700,
+                      color: user.verificationStatus === 'verified' ? 'var(--success)' : 'var(--accent)'
+                    }}>
+                      {user.verificationStatus === 'verified' ? 'Verified Member' : user.verificationStatus === 'pending' ? 'Review in Progress' : 'Awaiting Document Upload'}
+                    </span>
+                  </p>
 
-              <div className="feature-grid">
-                <div className="feature-box">
-                  <h4>Student Authentication (EPIC-002)</h4>
-                  <p>Secure JWT session active. Passwords salted with bcrypt. Access token securely scoped to your UNILAG identity.</p>
-                </div>
+                  <div className="feature-grid">
+                    <div className="feature-box">
+                      <h4>Verified Student Space</h4>
+                      <p>Your student account is linked to your UNILAG identity ({user.email}). No anonymous posts or outside visitors are allowed.</p>
+                    </div>
 
-                <div className="feature-box">
-                  <h4>Matriculation Verification</h4>
-                  <p>Matric Number: <strong>{user.matricNumber}</strong>. Submit your student ID card or course form for full community access.</p>
-                </div>
+                    <div className="feature-box">
+                      <h4>Faculty Verification Status</h4>
+                      <p>
+                        {user.verificationStatus === 'verified'
+                          ? 'You have complete student privileges across all features.'
+                          : 'Please confirm your student status by uploading your ID card or course registration form.'}
+                      </p>
+                      {user.verificationStatus !== 'verified' && (
+                        <button
+                          onClick={() => setActiveTab('verification')}
+                          className="submit-button"
+                          style={{ padding: '4px 10px', fontSize: '11px', marginTop: '6px' }}
+                          data-testid="go-to-verify-btn"
+                        >
+                          Verify Now
+                        </button>
+                      )}
+                    </div>
 
-                <div className="feature-box">
-                  <h4>Materials Vault</h4>
-                  <p>Browse past questions, syllabus summaries, and laboratory practical manuals tailored to {user.level}.</p>
-                </div>
+                    <div className="feature-box">
+                      <h4>Materials Vault</h4>
+                      <p>Access notes, past exam questions, and laboratory manuals shared for {user.level} pharmacy courses.</p>
+                    </div>
 
-                <div className="feature-box">
-                  <h4>PANS Official Notices</h4>
-                  <p>Stay informed with faculty announcements and level updates from official representatives.</p>
+                    <div className="feature-box">
+                      <h4>PANS Executive Desk</h4>
+                      <p>Read official announcements directly from your class representatives and PANS student leaders.</p>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
+              )}
+            </>
           )}
         </main>
       </div>

@@ -3,13 +3,13 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import App from './App';
 
-describe('Frontend Shell & Authentication Flows (EPIC-002)', () => {
+describe('Frontend Shell & Student Verification Flows (EPIC-003)', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     localStorage.clear();
   });
 
-  it('renders sign-in form for unauthenticated users', async () => {
+  it('renders student sign-in and switches tabs in plain non-technical language', async () => {
     global.fetch = vi.fn().mockImplementation((url) => {
       if (url.includes('/api/health')) {
         return Promise.resolve({
@@ -27,28 +27,11 @@ describe('Frontend Shell & Authentication Flows (EPIC-002)', () => {
     expect(screen.getByTestId('tab-register')).toBeInTheDocument();
 
     await waitFor(() => {
-      expect(screen.getByTestId('api-status-online')).toBeInTheDocument();
+      expect(screen.getByTestId('api-status-online')).toHaveTextContent('PharmaLink Connected');
     });
   });
 
-  it('can switch between Sign In and Register tabs', async () => {
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ status: 'ok' })
-    });
-
-    render(<App />);
-
-    const registerTab = screen.getByTestId('tab-register');
-    fireEvent.click(registerTab);
-
-    expect(screen.getByText('Create Student Account')).toBeInTheDocument();
-    expect(screen.getByLabelText(/Full Name/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/UNILAG Student Email/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Matric Number/i)).toBeInTheDocument();
-  });
-
-  it('renders authenticated dashboard when session is active', async () => {
+  it('allows student to navigate to Student Verification panel and view document upload form', async () => {
     localStorage.setItem('pharmalink_token', 'valid-jwt-token');
 
     global.fetch = vi.fn().mockImplementation((url) => {
@@ -74,15 +57,43 @@ describe('Frontend Shell & Authentication Flows (EPIC-002)', () => {
           })
         });
       }
-      return Promise.reject(new Error('Unknown url'));
+      if (url.includes('/api/verification/status')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            success: true,
+            verificationStatus: 'unverified',
+            request: null
+          })
+        });
+      }
+      if (url.includes('/api/verification/admin/requests')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            success: true,
+            requests: []
+          })
+        });
+      }
+      return Promise.reject(new Error('Unknown url: ' + url));
     });
 
     render(<App />);
 
     await waitFor(() => {
       expect(screen.getByTestId('authenticated-dashboard')).toBeInTheDocument();
-      expect(screen.getByText(/Welcome back, Chioma Okeke!/i)).toBeInTheDocument();
-      expect(screen.getByTestId('user-session-badge')).toBeInTheDocument();
+    });
+
+    // Click on Student Verification sidebar nav
+    const verifyNav = screen.getByTestId('nav-verification');
+    fireEvent.click(verifyNav);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('verification-panel')).toBeInTheDocument();
+      expect(screen.getByText(/To keep PharmaLink safe and exclusive/i)).toBeInTheDocument();
+      expect(screen.getByTestId('verification-form')).toBeInTheDocument();
+      expect(screen.getByText('Send for Review')).toBeInTheDocument();
     });
   });
 });

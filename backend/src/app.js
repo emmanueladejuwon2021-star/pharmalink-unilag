@@ -5,6 +5,7 @@ const morgan = require('morgan');
 const config = require('./config');
 const healthRoutes = require('./routes/healthRoutes');
 const authRoutes = require('./routes/authRoutes');
+const verificationRoutes = require('./routes/verificationRoutes');
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 
 const app = express();
@@ -33,6 +34,7 @@ if (config.env !== 'test') {
 // Routes
 app.use('/api', healthRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/verification', verificationRoutes);
 
 // Root fallback
 app.get('/', (req, res) => {

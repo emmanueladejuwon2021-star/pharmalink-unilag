@@ -106,6 +106,12 @@ Verify API status by querying:
 - `GET /api/auth/me` — Retrieve active authenticated session (requires `Bearer` token)
 - `POST /api/auth/change-password` — Change password for authenticated session
 
+### Student Verification Endpoints (EPIC-003)
+- `POST /api/verification/submit` — Submit student proof document (Faculty ID, UNILAG ID, Course Form, Exam Slip)
+- `GET /api/verification/status` — Retrieve current verification submission status for logged-in student
+- `GET /api/verification/admin/requests` — View student submission queue (PANS executives and platform admins)
+- `POST /api/verification/admin/review/:id` — Review, approve, or reject student verification submission
+
 ## Master Feature Checklist
 
 All features start as **Not Started**. Status must be updated honestly as work progresses (Not Started → In Progress → Implemented → Tested → Verified in Production). A feature is never marked Implemented based on placeholders or mock data.
@@ -114,7 +120,7 @@ All features start as **Not Started**. Status must be updated honestly as work p
 
 - [x] **EPIC-001** — Project Foundation and Architecture (Tested)
 - [x] **EPIC-002** — Authentication and Account Security (Tested)
-- [ ] **EPIC-003** — Student Verification System
+- [x] **EPIC-003** — Student Verification System (Tested)
 - [ ] **EPIC-004** — Academic Structure and Session Management
 - [ ] **EPIC-006** — Social Feed and Content Discovery
 - [ ] **EPIC-007** — Post Creation and Management
