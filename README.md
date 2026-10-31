@@ -49,16 +49,56 @@ All 24 epics from the Product Development Blueprint are **Not Started**.
 5. Create GitHub issues using the template in the Blueprint before implementing any feature.
 6. Update this README's feature checklist after each completed piece of work.
 
-## Setup (Not Yet Implemented)
+## Setup & Installation
 
-Once the foundation (EPIC-001) is built, this section will be updated with:
+PharmaLink UNILAG is built with a modular MERN architecture organized into workspaces:
+- `backend`: Express.js REST API with Mongoose, Helmet, and Jest tests.
+- `frontend`: React 18 with Vite, Lucide icons, responsive compact UI, and Vitest tests.
+- `shared`: Domain validation rules (UNILAG email, matric, level checks) and constants.
 
-- Required environment variables (secrets never committed)
-- Installation steps
-- How to run frontend, backend, and tests
-- Deployment notes
+### Prerequisites
+- Node.js >= 18.0.0
+- npm >= 9.0.0
+- MongoDB instance (optional for static health check; required for full persistent database operations)
 
-**Current state:** Groundwork only. No runtime code exists.
+### Environment Configuration
+Copy `.env.example` to `.env` in the root directory:
+```bash
+cp .env.example .env
+```
+Key configuration values:
+- `PORT`: Backend server port (default: 5000)
+- `CLIENT_URL`: Client frontend URL for CORS (default: http://localhost:3000)
+- `MONGODB_URI`: MongoDB connection string (default: mongodb://localhost:27017/pharmalink_dev)
+- `JWT_SECRET`: Secret token phrase for authentication
+
+### Installation
+Install dependencies across all workspaces:
+```bash
+npm install
+```
+
+### Running the Application
+To run both backend and frontend concurrently in development mode:
+```bash
+npm run dev
+```
+Or run each service individually:
+- Backend: `npm run dev --workspace=backend` (Runs on `http://localhost:5000`)
+- Frontend: `npm run dev --workspace=frontend` (Runs on `http://localhost:3000`)
+
+### Running Tests
+Execute test suites across all workspaces:
+```bash
+npm test
+```
+- Backend tests: `npm run test:backend`
+- Frontend tests: `npm run test:frontend`
+- Shared module tests: `npm test --workspace=shared`
+
+### Health Check
+Verify API status by querying:
+`GET /api/health`
 
 ## Master Feature Checklist
 
@@ -66,7 +106,7 @@ All features start as **Not Started**. Status must be updated honestly as work p
 
 ### Critical Priority
 
-- [ ] **EPIC-001** — Project Foundation and Architecture
+- [x] **EPIC-001** — Project Foundation and Architecture (Tested)
 - [ ] **EPIC-002** — Authentication and Account Security
 - [ ] **EPIC-003** — Student Verification System
 - [ ] **EPIC-004** — Academic Structure and Session Management

@@ -1,0 +1,9 @@
+{
+  "name": "@pharmalink/shared",
+  "version": "1.0.0",
+  "description": "Shared constants, enums, and types for PharmaLink UNILAG",
+  "main": "src/main.js",
+  "scripts": {
+    "test": "node --test src/*.test.js"
+  }
+}
