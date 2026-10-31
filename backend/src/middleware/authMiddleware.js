@@ -1,5 +1,6 @@
 const { verifyToken } = require('../utils/token');
 const User = require('../models/User');
+const { VERIFICATION_STATUS } = require('@pharmalink/shared');
 
 async function requireAuth(req, res, next) {
   try {
@@ -65,7 +66,7 @@ function requireVerified(req, res, next) {
     });
   }
 
-  if (req.user.verificationStatus !== 'verified') {
+  if (req.user.verificationStatus !== VERIFICATION_STATUS.VERIFIED) {
     return res.status(403).json({
       success: false,
       message: 'Access restricted to verified UNILAG Pharmacy students.'
