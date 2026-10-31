@@ -100,6 +100,12 @@ npm test
 Verify API status by querying:
 `GET /api/health`
 
+### Authentication Endpoints (EPIC-002)
+- `POST /api/auth/register` — Register student account (requires valid UNILAG email, 9-digit matric number, level 200L–500L, and 8+ char password)
+- `POST /api/auth/login` — Sign in with UNILAG email/matric number and password
+- `GET /api/auth/me` — Retrieve active authenticated session (requires `Bearer` token)
+- `POST /api/auth/change-password` — Change password for authenticated session
+
 ## Master Feature Checklist
 
 All features start as **Not Started**. Status must be updated honestly as work progresses (Not Started → In Progress → Implemented → Tested → Verified in Production). A feature is never marked Implemented based on placeholders or mock data.
@@ -107,7 +113,7 @@ All features start as **Not Started**. Status must be updated honestly as work p
 ### Critical Priority
 
 - [x] **EPIC-001** — Project Foundation and Architecture (Tested)
-- [ ] **EPIC-002** — Authentication and Account Security
+- [x] **EPIC-002** — Authentication and Account Security (Tested)
 - [ ] **EPIC-003** — Student Verification System
 - [ ] **EPIC-004** — Academic Structure and Session Management
 - [ ] **EPIC-006** — Social Feed and Content Discovery

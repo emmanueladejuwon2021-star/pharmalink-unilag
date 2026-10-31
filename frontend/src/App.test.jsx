@@ -1,42 +1,88 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import App from './App';
 
-describe('Frontend Shell & App Component', () => {
+describe('Frontend Shell & Authentication Flows (EPIC-002)', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    localStorage.clear();
   });
 
-  it('renders application brand and navigation links', async () => {
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        status: 'ok',
-        appName: 'PharmaLink UNILAG API',
-        uptimeSeconds: 10
-      })
+  it('renders sign-in form for unauthenticated users', async () => {
+    global.fetch = vi.fn().mockImplementation((url) => {
+      if (url.includes('/api/health')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ status: 'ok', appName: 'PharmaLink UNILAG API', uptimeSeconds: 15 })
+        });
+      }
+      return Promise.reject(new Error('Unknown url'));
     });
 
     render(<App />);
 
-    expect(screen.getByText('PharmaLink UNILAG')).toBeInTheDocument();
-    expect(screen.getByText('Materials Vault')).toBeInTheDocument();
-    expect(screen.getByText('Social Feed')).toBeInTheDocument();
-    expect(screen.getByText('Levels (200L–500L)')).toBeInTheDocument();
+    expect(screen.getByText('Student Sign In')).toBeInTheDocument();
+    expect(screen.getByTestId('tab-login')).toBeInTheDocument();
+    expect(screen.getByTestId('tab-register')).toBeInTheDocument();
 
     await waitFor(() => {
       expect(screen.getByTestId('api-status-online')).toBeInTheDocument();
     });
   });
 
-  it('handles offline / detached API gracefully', async () => {
-    global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
+  it('can switch between Sign In and Register tabs', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ status: 'ok' })
+    });
+
+    render(<App />);
+
+    const registerTab = screen.getByTestId('tab-register');
+    fireEvent.click(registerTab);
+
+    expect(screen.getByText('Create Student Account')).toBeInTheDocument();
+    expect(screen.getByLabelText(/Full Name/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/UNILAG Student Email/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Matric Number/i)).toBeInTheDocument();
+  });
+
+  it('renders authenticated dashboard when session is active', async () => {
+    localStorage.setItem('pharmalink_token', 'valid-jwt-token');
+
+    global.fetch = vi.fn().mockImplementation((url) => {
+      if (url.includes('/api/health')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ status: 'ok' })
+        });
+      }
+      if (url.includes('/api/auth/me')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            success: true,
+            user: {
+              fullName: 'Chioma Okeke',
+              email: 'cokeke@live.unilag.edu.ng',
+              matricNumber: '190805123',
+              level: '400L',
+              role: 'student',
+              verificationStatus: 'unverified'
+            }
+          })
+        });
+      }
+      return Promise.reject(new Error('Unknown url'));
+    });
 
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByTestId('api-status-offline')).toBeInTheDocument();
+      expect(screen.getByTestId('authenticated-dashboard')).toBeInTheDocument();
+      expect(screen.getByText(/Welcome back, Chioma Okeke!/i)).toBeInTheDocument();
+      expect(screen.getByTestId('user-session-badge')).toBeInTheDocument();
     });
   });
 });

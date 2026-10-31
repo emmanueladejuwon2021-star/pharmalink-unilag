@@ -6,10 +6,11 @@ import {
   Compass,
   HelpCircle,
   Layers,
-  CheckCircle2,
-  AlertCircle,
-  GraduationCap
+  User as UserIcon,
+  GraduationCap,
+  LogOut
 } from 'lucide-react';
+import AuthModal from './components/AuthModal';
 
 export default function App() {
   const [health, setHealth] = useState({
@@ -18,6 +19,9 @@ export default function App() {
     data: null,
     error: null
   });
+
+  const [user, setUser] = useState(null);
+  const [token, setToken] = useState(() => localStorage.getItem('pharmalink_token') || null);
 
   useEffect(() => {
     fetch('/api/health')
@@ -43,6 +47,42 @@ export default function App() {
       });
   }, []);
 
+  // Fetch authenticated session if token exists
+  useEffect(() => {
+    if (!token) {
+      setUser(null);
+      return;
+    }
+
+    fetch('/api/auth/me', {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error('Session invalid');
+        return res.json();
+      })
+      .then((data) => {
+        setUser(data.user);
+      })
+      .catch(() => {
+        localStorage.removeItem('pharmalink_token');
+        setToken(null);
+        setUser(null);
+      });
+  }, [token]);
+
+  const handleAuthSuccess = (newToken, newUser) => {
+    localStorage.setItem('pharmalink_token', newToken);
+    setToken(newToken);
+    setUser(newUser);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('pharmalink_token');
+    setToken(null);
+    setUser(null);
+  };
+
   return (
     <div className="app-container" data-testid="pharmalink-app">
       {/* Header */}
@@ -55,7 +95,17 @@ export default function App() {
           </div>
         </div>
 
-        <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {user ? (
+            <div className="user-badge" data-testid="user-session-badge">
+              <UserIcon size={14} />
+              <span><strong>{user.fullName}</strong> ({user.level})</span>
+              <button onClick={handleLogout} className="logout-btn" title="Sign Out">
+                <LogOut size={13} />
+              </button>
+            </div>
+          ) : null}
+
           {health.status === 'online' ? (
             <span className="status-pill online" data-testid="api-status-online">
               <span className="indicator-dot"></span>
@@ -110,38 +160,45 @@ export default function App() {
             <strong>Welcome to PharmaLink UNILAG:</strong> A dedicated, private academic and social network restricted strictly to verified 200L–500L Pharmacy students at the University of Lagos.
           </div>
 
-          <div className="card">
-            <h2 className="card-title">Project Foundation & Architecture (EPIC-001)</h2>
-            <p className="card-subtitle">
-              Unified MERN stack workspace initialized with robust error handling, responsive UI shell, shared domain contracts, and end-to-end test infrastructure.
-            </p>
+          {!user ? (
+            <AuthModal onAuthSuccess={handleAuthSuccess} />
+          ) : (
+            <div className="card" data-testid="authenticated-dashboard">
+              <h2 className="card-title">Welcome back, {user.fullName}!</h2>
+              <p className="card-subtitle">
+                Academic Level: <strong>{user.level}</strong> &bull; Verification Status:{' '}
+                <span style={{
+                  textTransform: 'uppercase',
+                  fontWeight: 600,
+                  color: user.verificationStatus === 'verified' ? 'var(--success)' : 'var(--accent)'
+                }}>
+                  {user.verificationStatus}
+                </span>
+              </p>
 
-            <div className="feature-grid">
-              <div className="feature-box">
-                <h4>Verified Faculty Boundary</h4>
-                <p>Restricted to UNILAG Pharmacy students (200L to 500L). No anonymous questions, direct messages, or external visitors.</p>
-              </div>
+              <div className="feature-grid">
+                <div className="feature-box">
+                  <h4>Student Authentication (EPIC-002)</h4>
+                  <p>Secure JWT session active. Passwords salted with bcrypt. Access token securely scoped to your UNILAG identity.</p>
+                </div>
 
-              <div className="feature-box">
-                <h4>System Health & Backend</h4>
-                <p>
-                  API Status: <strong>{health.status.toUpperCase()}</strong>
-                  <br />
-                  {health.data ? `Uptime: ${health.data.uptimeSeconds}s | App: ${health.data.appName}` : 'Backend service ready.'}
-                </p>
-              </div>
+                <div className="feature-box">
+                  <h4>Matriculation Verification</h4>
+                  <p>Matric Number: <strong>{user.matricNumber}</strong>. Submit your student ID card or course form for full community access.</p>
+                </div>
 
-              <div className="feature-box">
-                <h4>Materials Vault Architecture</h4>
-                <p>Standardized document tagging for past questions, lecture notes, lab manuals, and exam study guides across professional years.</p>
-              </div>
+                <div className="feature-box">
+                  <h4>Materials Vault</h4>
+                  <p>Browse past questions, syllabus summaries, and laboratory practical manuals tailored to {user.level}.</p>
+                </div>
 
-              <div className="feature-box">
-                <h4>PANS Official Channel</h4>
-                <p>Authentic level rep and executive announcements with verifiable provenance and academic session tracking.</p>
+                <div className="feature-box">
+                  <h4>PANS Official Notices</h4>
+                  <p>Stay informed with faculty announcements and level updates from official representatives.</p>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </main>
       </div>
 
