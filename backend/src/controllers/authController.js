@@ -111,15 +111,21 @@ async function login(req, res, next) {
       });
     }
 
-    const cleanIdentifier = identifier.trim().toLowerCase();
+    const trimmed = identifier.trim();
+    const cleanIdentifier = trimmed.toLowerCase();
 
     // Support logging in via email or matric number
-    const user = await User.findOne({
-      $or: [
-        { email: cleanIdentifier },
-        { matricNumber: identifier.trim() }
-      ]
-    }).select('+password');
+    // Prefer email match if it looks like email, else matric
+    const query = isValidUnilagEmail(trimmed)
+      ? { email: cleanIdentifier }
+      : {
+          $or: [
+            { email: cleanIdentifier },
+            { matricNumber: trimmed }
+          ]
+        };
+
+    const user = await User.findOne(query).select('+password');
 
     if (!user) {
       return res.status(401).json({
@@ -178,7 +184,7 @@ async function changePassword(req, res, next) {
       });
     }
 
-    if (newPassword.length < 8) {
+    if (typeof newPassword !== 'string' || newPassword.length < 8) {
       return res.status(400).json({
         success: false,
         message: 'New password must be at least 8 characters long.'
@@ -186,6 +192,13 @@ async function changePassword(req, res, next) {
     }
 
     const user = await User.findById(req.user._id).select('+password');
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: 'User account no longer exists.'
+      });
+    }
+
     const isMatch = await user.comparePassword(currentPassword);
     if (!isMatch) {
       return res.status(400).json({
