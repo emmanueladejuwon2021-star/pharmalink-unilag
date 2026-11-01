@@ -13,6 +13,7 @@ import {
 import AuthModal from './components/AuthModal';
 import VerificationPanel from './components/VerificationPanel';
 import AdminVerificationList from './components/AdminVerificationList';
+import AcademicHub from './components/AcademicHub';
 
 export default function App() {
   const [health, setHealth] = useState({
@@ -146,6 +147,15 @@ export default function App() {
             <span>Materials Vault</span>
           </a>
           <a
+            href="#academic"
+            className={`nav-link ${activeTab === 'academic' ? 'active' : ''}`}
+            onClick={() => setActiveTab('academic')}
+            data-testid="nav-academic"
+          >
+            <GraduationCap />
+            <span>Academic Hub</span>
+          </a>
+          <a
             href="#verification"
             className={`nav-link ${activeTab === 'verification' ? 'active' : ''}`}
             onClick={() => setActiveTab('verification')}
@@ -212,6 +222,14 @@ export default function App() {
                     }}
                   />
                 </>
+              ) : activeTab === 'academic' ? (
+                <AcademicHub
+                  user={user}
+                  token={token}
+                  onLevelUpdated={(student) => {
+                    setUser((prev) => ({ ...prev, level: student.level }));
+                  }}
+                />
               ) : (
                 <div className="card" data-testid="authenticated-dashboard">
                   <h2 className="card-title">Welcome back, {user.fullName}!</h2>
