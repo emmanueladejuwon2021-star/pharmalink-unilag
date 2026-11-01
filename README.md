@@ -36,9 +36,7 @@ MERN stack (MongoDB, Express.js, React, Node.js).
 
 ## Project Status
 
-**This repository currently contains the foundational groundwork only.** No application code has been written yet. This is the preparation layer for coding agents (Jules, Claude, etc.) to begin implementation.
-
-All 24 epics from the Product Development Blueprint are **Not Started**.
+Foundation groundwork, core authentication, and the student verification system have been built and tested.
 
 ## How to Use This Repository
 
@@ -54,12 +52,12 @@ All 24 epics from the Product Development Blueprint are **Not Started**.
 PharmaLink UNILAG is built with a modular MERN architecture organized into workspaces:
 - `backend`: Express.js REST API with Mongoose, Helmet, and Jest tests.
 - `frontend`: React 18 with Vite, Lucide icons, responsive compact UI, and Vitest tests.
-- `shared`: Domain validation rules (UNILAG email, matric, level checks) and constants.
+- `shared`: Domain validation rules (UNILAG email, matric, level checks, document types) and constants.
 
 ### Prerequisites
 - Node.js >= 18.0.0
 - npm >= 9.0.0
-- MongoDB instance (optional for static health check; required for full persistent database operations)
+- MongoDB instance (MongoDB Cloud / Atlas connection supported)
 
 ### Environment Configuration
 Copy `.env.example` to `.env` in the root directory:
@@ -69,7 +67,7 @@ cp .env.example .env
 Key configuration values:
 - `PORT`: Backend server port (default: 5000)
 - `CLIENT_URL`: Client frontend URL for CORS (default: http://localhost:3000)
-- `MONGODB_URI`: MongoDB connection string (default: mongodb://localhost:27017/pharmalink_dev)
+- `MONGODB_URI`: MongoDB connection string (e.g., MongoDB Atlas `mongodb+srv://...`)
 - `JWT_SECRET`: Secret token phrase for authentication
 
 ### Installation
@@ -106,6 +104,12 @@ Verify API status by querying:
 - `GET /api/auth/me` — Retrieve active authenticated session (requires `Bearer` token)
 - `POST /api/auth/change-password` — Change password for authenticated session
 
+### Student Verification Endpoints (EPIC-003)
+- `POST /api/verification/submit` — Submit document for student verification (Faculty ID Card, UNILAG Student ID, Course Form, Docket)
+- `GET /api/verification/status` — Get active verification status and submission history for authenticated student
+- `GET /api/verification/requests` — List verification requests (Admin, Moderator, and PANS Exec roles)
+- `PATCH /api/verification/requests/:id/review` — Review verification request with approve or reject action and feedback reason (Admin & Moderator roles)
+
 ## Master Feature Checklist
 
 All features start as **Not Started**. Status must be updated honestly as work progresses (Not Started → In Progress → Implemented → Tested → Verified in Production). A feature is never marked Implemented based on placeholders or mock data.
@@ -114,7 +118,7 @@ All features start as **Not Started**. Status must be updated honestly as work p
 
 - [x] **EPIC-001** — Project Foundation and Architecture (Tested)
 - [x] **EPIC-002** — Authentication and Account Security (Tested)
-- [ ] **EPIC-003** — Student Verification System
+- [x] **EPIC-003** — Student Verification System (Tested)
 - [ ] **EPIC-004** — Academic Structure and Session Management
 - [ ] **EPIC-006** — Social Feed and Content Discovery
 - [ ] **EPIC-007** — Post Creation and Management

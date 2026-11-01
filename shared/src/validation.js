@@ -1,8 +1,8 @@
 /**
- * UNILAG Student Email and Matric Number Validators
+ * UNILAG Student Email, Matric Number, and Verification Validators
  */
 
-const { ELIGIBLE_LEVELS, USER_ROLES } = require('./index');
+const { ELIGIBLE_LEVELS, USER_ROLES, VERIFICATION_DOC_TYPES } = require('./index');
 
 /**
  * Validate UNILAG student email
@@ -30,8 +30,16 @@ function isValidLevel(level) {
   return ELIGIBLE_LEVELS.includes(level);
 }
 
+/**
+ * Validate document verification type
+ */
+function isValidVerificationDocType(docType) {
+  return VERIFICATION_DOC_TYPES.includes(docType);
+}
+
 module.exports = {
   isValidUnilagEmail,
   isValidMatricNumber,
-  isValidLevel
+  isValidLevel,
+  isValidVerificationDocType
 };
