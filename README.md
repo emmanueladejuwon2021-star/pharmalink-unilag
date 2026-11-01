@@ -121,6 +121,14 @@ Verify API status by querying:
 - `PUT /api/academic/my-period` — Student updates their own session and semester
 - `POST /api/academic/admin/promote/:userId` — Promote a student one level with full progression history (admins, moderators, PANS executives)
 
+### User Profile Endpoints (EPIC-005)
+- `GET /api/profiles/me` — The signed-in student's full profile (identity, bio, interests, expected graduation year, completeness score) plus their academic session/semester
+- `PATCH /api/profiles/me` — Update your own bio, interest areas, graduation year, and profile visibility (server-validated; identity fields such as email or matric number cannot be changed here)
+- `GET /api/profiles?level=300L&search=name` — Member directory for verified students only (unverified accounts receive 403)
+- `GET /api/profiles/:id` — View one student profile; owners always see their own, other profiles require verified status
+
+Matric numbers are shown masked (e.g. `190••••23`) on all profile responses so the private community never leaks full student identifiers.
+
 ## Master Feature Checklist
 
 All features start as **Not Started**. Status must be updated honestly as work progresses (Not Started → In Progress → Implemented → Tested → Verified in Production). A feature is never marked Implemented based on placeholders or mock data.
@@ -142,7 +150,7 @@ All features start as **Not Started**. Status must be updated honestly as work p
 
 ### High Priority
 
-- [ ] **EPIC-005** — User Profiles and Identity
+- [x] **EPIC-005** — User Profiles and Identity (Tested)
 - [ ] **EPIC-009** — Likes, Re-Links and Bookmarks
 - [ ] **EPIC-010** — Following and Social Connections
 - [ ] **EPIC-013** — Global Search and Discovery

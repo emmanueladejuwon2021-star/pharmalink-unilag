@@ -12,7 +12,16 @@ const {
   isValidAcademicSession,
   isValidSemester,
   getNextLevel,
-  levelToNumber
+  levelToNumber,
+  PROFILE_INTEREST_AREAS,
+  PROFILE_BIO_MAX_LENGTH,
+  AVATAR_COLORS,
+  getInitials,
+  getAvatarColor,
+  isValidInterestList,
+  isValidGraduatingYear,
+  computeProfileCompleteness,
+  isProfileViewable
 } = require('./index');
 
 const {
@@ -20,6 +29,8 @@ const {
   isValidMatricNumber,
   isValidLevel
 } = require('./validation');
+
+const feed = require('./feed');
 
 module.exports = {
   ELIGIBLE_LEVELS,
@@ -36,7 +47,17 @@ module.exports = {
   isValidSemester,
   getNextLevel,
   levelToNumber,
+  PROFILE_INTEREST_AREAS,
+  PROFILE_BIO_MAX_LENGTH,
+  AVATAR_COLORS,
+  getInitials,
+  getAvatarColor,
+  isValidInterestList,
+  isValidGraduatingYear,
+  computeProfileCompleteness,
+  isProfileViewable,
   isValidUnilagEmail,
   isValidMatricNumber,
-  isValidLevel
+  isValidLevel,
+  ...feed
 };
