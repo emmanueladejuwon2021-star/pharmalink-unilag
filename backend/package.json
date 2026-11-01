@@ -30,5 +30,10 @@
       "**/tests/**/*.test.js"
     ],
     "testTimeout": 30000
+  },
+  "config": {
+    "mongodbMemoryServer": {
+      "version": "7.0.14"
+    }
   }
 }
