@@ -14,6 +14,7 @@ import {
 import AuthModal from './components/AuthModal';
 import VerificationSection from './components/VerificationSection';
 import AcademicSection from './components/AcademicSection';
+import ProfileSection from './components/ProfileSection';
 
 export default function App() {
   const [health, setHealth] = useState({
@@ -25,7 +26,7 @@ export default function App() {
 
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(() => localStorage.getItem('pharmalink_token') || null);
-  const [activeView, setActiveView] = useState('feed'); // 'feed' | 'verification' | 'levels'
+  const [activeView, setActiveView] = useState('feed'); // 'feed' | 'verification' | 'levels' | 'profile'
 
   useEffect(() => {
     fetch('/api/health')
@@ -108,7 +109,13 @@ export default function App() {
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           {user ? (
-            <div className="user-badge" data-testid="user-session-badge">
+            <div
+              className="user-badge"
+              data-testid="user-session-badge"
+              style={{ cursor: 'pointer' }}
+              onClick={() => setActiveView('profile')}
+              title="Click to view Profile & Student Directory"
+            >
               <UserIcon size={14} />
               <span><strong>{user.fullName}</strong> ({user.level})</span>
               {user.verificationStatus === 'verified' && (
@@ -116,7 +123,14 @@ export default function App() {
                   <CheckCircle2 size={13} color="var(--success)" />
                 </span>
               )}
-              <button onClick={handleLogout} className="logout-btn" title="Sign Out">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleLogout();
+                }}
+                className="logout-btn"
+                title="Sign Out"
+              >
                 <LogOut size={13} />
               </button>
             </div>
@@ -167,6 +181,15 @@ export default function App() {
             <GraduationCap />
             <span>Levels & Courses</span>
           </a>
+          <a
+            href="#profile"
+            className={`nav-link ${activeView === 'profile' ? 'active' : ''}`}
+            onClick={(e) => { e.preventDefault(); setActiveView('profile'); }}
+            data-testid="nav-profile"
+          >
+            <UserIcon />
+            <span>Student Profile</span>
+          </a>
           <a href="#vault" className="nav-link" data-testid="nav-vault">
             <BookOpen />
             <span>Materials Vault</span>
@@ -212,6 +235,15 @@ export default function App() {
                 />
               )}
 
+              {/* User Profile & Student Directory (EPIC-005) */}
+              {activeView === 'profile' && (
+                <ProfileSection
+                  user={user}
+                  token={token}
+                  onProfileUpdated={(updatedUser) => setUser(updatedUser)}
+                />
+              )}
+
               {/* Feed & Default Dashboard View */}
               {activeView === 'feed' && (
                 <div>
@@ -241,6 +273,13 @@ export default function App() {
 
                     <div className="feature-grid">
                       <div className="feature-box">
+                        <h4>User Profile & Directory (EPIC-005)</h4>
+                        <p>
+                          Manage your academic identity, department affiliation, research interests, and connect with peers across 200L–500L.
+                        </p>
+                      </div>
+
+                      <div className="feature-box">
                         <h4>Academic Structure (EPIC-004)</h4>
                         <p>
                           Explore accredited curriculum across all 5 UNILAG Pharmacy departments (CPH, PCH, PCT, PCG, PCL) and active sessions.
@@ -258,11 +297,6 @@ export default function App() {
                       <div className="feature-box">
                         <h4>Student Authentication (EPIC-002)</h4>
                         <p>Secure JWT session active. Passwords salted with bcrypt. Access token securely scoped to your UNILAG identity.</p>
-                      </div>
-
-                      <div className="feature-box">
-                        <h4>Materials Vault</h4>
-                        <p>Browse past questions, syllabus summaries, and laboratory practical manuals tailored to {user.level}.</p>
                       </div>
                     </div>
                   </div>

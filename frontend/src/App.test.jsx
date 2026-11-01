@@ -40,6 +40,31 @@ const mockCourses = [
   }
 ];
 
+const mockPeerStudents = [
+  {
+    _id: 's1',
+    fullName: 'Babatunde Fashola',
+    matricNumber: '190805124',
+    level: '400L',
+    department: 'CPH',
+    bio: 'Future Clinical Pharmacist',
+    interests: ['Pharmacokinetics', 'Hospital Pharmacy'],
+    stats: { postsCount: 5, materialsCount: 2, reputationPoints: 30 },
+    verificationStatus: 'verified'
+  },
+  {
+    _id: 's2',
+    fullName: 'Amina Bello',
+    matricNumber: '190805125',
+    level: '300L',
+    department: 'PCH',
+    bio: 'Medicinal chemistry researcher',
+    interests: ['Drug Discovery'],
+    stats: { postsCount: 3, materialsCount: 1, reputationPoints: 15 },
+    verificationStatus: 'verified'
+  }
+];
+
 function setupGlobalFetch(userOverrides = {}) {
   global.fetch = vi.fn().mockImplementation((url) => {
     if (url.includes('/api/health')) {
@@ -58,8 +83,12 @@ function setupGlobalFetch(userOverrides = {}) {
             email: 'cokeke@live.unilag.edu.ng',
             matricNumber: '190805123',
             level: '300L',
+            department: 'PCH',
+            bio: 'Passionate pharmaceutical chemistry researcher',
+            interests: ['Organic Synthesis', 'Medicinal Plants'],
             role: 'student',
             verificationStatus: 'unverified',
+            stats: { postsCount: 2, materialsCount: 4, reputationPoints: 25 },
             ...userOverrides
           }
         })
@@ -91,6 +120,37 @@ function setupGlobalFetch(userOverrides = {}) {
       return Promise.resolve({
         ok: true,
         json: async () => ({ success: true, courses: mockCourses, count: mockCourses.length })
+      });
+    }
+    if (url.includes('/api/profile/me')) {
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          success: true,
+          user: {
+            fullName: 'Chioma Okeke',
+            email: 'cokeke@live.unilag.edu.ng',
+            matricNumber: '190805123',
+            level: '300L',
+            department: 'PCH',
+            bio: 'Passionate pharmaceutical chemistry researcher',
+            interests: ['Organic Synthesis', 'Medicinal Plants'],
+            role: 'student',
+            verificationStatus: userOverrides.verificationStatus || 'unverified',
+            stats: { postsCount: 2, materialsCount: 4, reputationPoints: 25 },
+            ...userOverrides
+          }
+        })
+      });
+    }
+    if (url.includes('/api/profile/directory/students')) {
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          success: true,
+          students: mockPeerStudents,
+          pagination: { page: 1, limit: 20, total: 2, totalPages: 1 }
+        })
       });
     }
     return Promise.reject(new Error(`Unknown url: ${url}`));
@@ -223,6 +283,57 @@ describe('Academic Structure & Course Catalog (EPIC-004)', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('academic-section')).toBeInTheDocument();
+    });
+  });
+});
+
+describe('User Profiles and Student Directory (EPIC-005)', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    localStorage.clear();
+    localStorage.setItem('pharmalink_token', 'mock-token');
+  });
+
+  it('allows navigation to Student Profile from sidebar and displays user bio', async () => {
+    setupGlobalFetch({ verificationStatus: 'verified' });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('nav-profile')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId('nav-profile'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('profile-section')).toBeInTheDocument();
+      expect(screen.getByTestId('profile-bio-text')).toHaveTextContent('Passionate pharmaceutical chemistry researcher');
+      expect(screen.getByTestId('tab-my-profile')).toBeInTheDocument();
+      expect(screen.getByTestId('tab-directory')).toBeInTheDocument();
+    });
+  });
+
+  it('renders student directory peers when Directory tab is selected', async () => {
+    setupGlobalFetch({ verificationStatus: 'verified' });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('nav-profile')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId('nav-profile'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('tab-directory')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId('tab-directory'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Babatunde Fashola')).toBeInTheDocument();
+      expect(screen.getByText('Amina Bello')).toBeInTheDocument();
+      expect(screen.getByText('Future Clinical Pharmacist')).toBeInTheDocument();
     });
   });
 });
