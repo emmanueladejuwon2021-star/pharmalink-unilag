@@ -8,12 +8,14 @@ import {
   Layers,
   User as UserIcon,
   GraduationCap,
-  LogOut
+  LogOut,
+  UserCircle2
 } from 'lucide-react';
 import AuthModal from './components/AuthModal';
 import VerificationPanel from './components/VerificationPanel';
 import AdminVerificationList from './components/AdminVerificationList';
 import AcademicHub from './components/AcademicHub';
+import ProfileHub from './components/ProfileHub';
 
 export default function App() {
   const [health, setHealth] = useState({
@@ -156,6 +158,15 @@ export default function App() {
             <span>Academic Hub</span>
           </a>
           <a
+            href="#profile"
+            className={`nav-link ${activeTab === 'profile' ? 'active' : ''}`}
+            onClick={() => setActiveTab('profile')}
+            data-testid="nav-profile"
+          >
+            <UserCircle2 />
+            <span>My Profile</span>
+          </a>
+          <a
             href="#verification"
             className={`nav-link ${activeTab === 'verification' ? 'active' : ''}`}
             onClick={() => setActiveTab('verification')}
@@ -222,6 +233,14 @@ export default function App() {
                     }}
                   />
                 </>
+              ) : activeTab === 'profile' ? (
+                <ProfileHub
+                  user={user}
+                  token={token}
+                  onProfileUpdated={(profile) => {
+                    setUser((prev) => ({ ...prev, bio: profile.bio, interests: profile.interests }));
+                  }}
+                />
               ) : activeTab === 'academic' ? (
                 <AcademicHub
                   user={user}

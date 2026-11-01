@@ -129,6 +129,107 @@ const VERIFICATION_DOC_TYPES = [
   'Docket / Exam Slip'
 ];
 
+
+// ---------------------------------------------------------------------------
+// EPIC-005: User Profiles and Identity
+// ---------------------------------------------------------------------------
+
+// Selectable academic interest areas shown on student profiles
+const PROFILE_INTEREST_AREAS = [
+  'Pharmacology',
+  'Pharmaceutical Chemistry',
+  'Pharmaceutics & Formulation',
+  'Clinical Pharmacy & Therapeutics',
+  'Pharmacognosy',
+  'Hospital & Community Pharmacy',
+  'Pharmaceutical Microbiology',
+  'Research & Publications',
+  'Exam Prep & Past Questions',
+  'Student Welfare & Mentorship'
+];
+
+// Maximum lengths enforced on both client and server
+const PROFILE_BIO_MAX_LENGTH = 300;
+const PROFILE_NAME_MIN_LENGTH = 2;
+
+/**
+ * Derive display initials from a full name (max two letters).
+ */
+function getInitials(fullName) {
+  if (!fullName || typeof fullName !== 'string') return '?';
+  const parts = fullName.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '?';
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+}
+
+// Deterministic avatar palette keyed off the matric number so every member
+// sees the same colour everywhere (no uploaded images in original scope).
+const AVATAR_COLORS = [
+  '#2563eb', '#7c3aed', '#db2777', '#dc2626',
+  '#ea580c', '#ca8a04', '#16a34a', '#0d9488',
+  '#0891b2', '#4f46e5'
+];
+
+/**
+ * Stable avatar colour derived from the user's identifier.
+ */
+function getAvatarColor(seed) {
+  if (!seed || typeof seed !== 'string') return AVATAR_COLORS[0];
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) {
+    hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
+  }
+  return AVATAR_COLORS[hash % AVATAR_COLORS.length];
+}
+
+/**
+ * Validate a list of interest areas against the allowed set.
+ */
+function isValidInterestList(interests) {
+  if (!Array.isArray(interests)) return false;
+  if (interests.length > PROFILE_INTEREST_AREAS.length) return false;
+  return interests.every((i) => PROFILE_INTEREST_AREAS.includes(i));
+}
+
+/**
+ * Validate an expected graduation year (UNILAG Pharmacy window 2025-2035).
+ */
+function isValidGraduatingYear(year) {
+  const numeric = Number(year);
+  return Number.isInteger(numeric) && numeric >= 2025 && numeric <= 2035;
+}
+
+/**
+ * Weighted profile completeness score (0-100). Real data only: each field
+ * contributes its weight, so the score tells members how complete their
+ * identity is across the community.
+ */
+function computeProfileCompleteness(profile) {
+  if (!profile) return 0;
+  let score = 0;
+  if (profile.fullName && String(profile.fullName).trim().length >= PROFILE_NAME_MIN_LENGTH) score += 20;
+  if (profile.matricNumber) score += 20;
+  if (profile.level) score += 15;
+  if (profile.verificationStatus === 'verified') score += 20;
+  if (profile.bio && String(profile.bio).trim().length > 0) score += 10;
+  if (Array.isArray(profile.interests) && profile.interests.length > 0) score += 10;
+  if (profile.graduatingYear) score += 5;
+  return Math.min(score, 100);
+}
+
+/**
+ * Private-community boundary helper: profile details may only be viewed by
+ * verified members, or by the profile owner themselves.
+ */
+function isProfileViewable(viewer, target) {
+  if (!viewer || !target) return false;
+  const viewerId = String(viewer._id || viewer.id || '');
+  const targetId = String(target._id || target.id || '');
+  if (viewerId && viewerId === targetId) return true;
+  return viewer.verificationStatus === 'verified';
+}
+
 module.exports = {
   ELIGIBLE_LEVELS,
   USER_ROLES,
@@ -143,5 +244,14 @@ module.exports = {
   isValidAcademicSession,
   isValidSemester,
   getNextLevel,
-  levelToNumber
+  levelToNumber,
+  PROFILE_INTEREST_AREAS,
+  PROFILE_BIO_MAX_LENGTH,
+  AVATAR_COLORS,
+  getInitials,
+  getAvatarColor,
+  isValidInterestList,
+  isValidGraduatingYear,
+  computeProfileCompleteness,
+  isProfileViewable
 };

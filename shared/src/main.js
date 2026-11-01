@@ -12,7 +12,16 @@ const {
   isValidAcademicSession,
   isValidSemester,
   getNextLevel,
-  levelToNumber
+  levelToNumber,
+  PROFILE_INTEREST_AREAS,
+  PROFILE_BIO_MAX_LENGTH,
+  AVATAR_COLORS,
+  getInitials,
+  getAvatarColor,
+  isValidInterestList,
+  isValidGraduatingYear,
+  computeProfileCompleteness,
+  isProfileViewable
 } = require('./index');
 
 const {
@@ -36,6 +45,15 @@ module.exports = {
   isValidSemester,
   getNextLevel,
   levelToNumber,
+  PROFILE_INTEREST_AREAS,
+  PROFILE_BIO_MAX_LENGTH,
+  AVATAR_COLORS,
+  getInitials,
+  getAvatarColor,
+  isValidInterestList,
+  isValidGraduatingYear,
+  computeProfileCompleteness,
+  isProfileViewable,
   isValidUnilagEmail,
   isValidMatricNumber,
   isValidLevel

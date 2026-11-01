@@ -4,8 +4,10 @@ const {
   ELIGIBLE_LEVELS,
   USER_ROLES,
   VERIFICATION_STATUS,
+  PROFILE_INTEREST_AREAS,
   isValidUnilagEmail,
-  isValidMatricNumber
+  isValidMatricNumber,
+  isValidInterestList
 } = require('@pharmalink/shared');
 
 const userSchema = new mongoose.Schema(
@@ -60,6 +62,36 @@ const userSchema = new mongoose.Schema(
       type: String,
       enum: Object.values(VERIFICATION_STATUS),
       default: VERIFICATION_STATUS.UNVERIFIED
+    },
+    // EPIC-005: User Profiles and Identity
+    bio: {
+      type: String,
+      trim: true,
+      maxlength: [300, 'Bio must be 300 characters or fewer']
+    },
+    interests: {
+      type: [{
+        type: String,
+        enum: {
+          values: PROFILE_INTEREST_AREAS,
+          message: 'Each interest must be one of the Faculty interest areas'
+        }
+      }],
+      default: [],
+      validate: {
+        validator: (value) => isValidInterestList(value),
+        message: 'Interests must be valid Faculty interest areas (no duplicates beyond the allowed list)'
+      }
+    },
+    graduatingYear: {
+      type: Number,
+      min: [2025, 'Expected graduation year must be 2025 or later'],
+      max: [2035, 'Expected graduation year must be 2035 or earlier']
+    },
+    profileVisibility: {
+      type: String,
+      enum: ['public', 'verified-only'],
+      default: 'verified-only'
     },
     lastLoginAt: {
       type: Date
