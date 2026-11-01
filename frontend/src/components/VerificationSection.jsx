@@ -168,7 +168,7 @@ export default function VerificationSection({ user, token, onStatusUpdated }) {
         <div>
           <h3 style={{ fontSize: '16px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
             <ShieldCheck size={18} color="var(--primary)" />
-            UNILAG Pharmacy Student Verification (EPIC-003)
+            BD-Pharm Student Verification (EPIC-003)
           </h3>
           <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
             Strict community boundary: Only verified 200L–500L Pharmacy students can access vault materials and discussions.

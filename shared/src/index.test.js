@@ -1,6 +1,12 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const { ELIGIBLE_LEVELS, USER_ROLES, VERIFICATION_STATUS } = require('./index');
+const {
+  ELIGIBLE_LEVELS,
+  USER_ROLES,
+  VERIFICATION_STATUS,
+  DEPARTMENTS,
+  SEMESTERS
+} = require('./index');
 
 test('shared constants contains 200L to 500L', () => {
   assert.deepStrictEqual(ELIGIBLE_LEVELS, ['200L', '300L', '400L', '500L']);
@@ -17,4 +23,14 @@ test('verification lifecycle statuses', () => {
   assert.strictEqual(VERIFICATION_STATUS.UNVERIFIED, 'unverified');
   assert.strictEqual(VERIFICATION_STATUS.PENDING, 'pending');
   assert.strictEqual(VERIFICATION_STATUS.VERIFIED, 'verified');
+});
+
+test('contains 5 official UNILAG Pharmacy departments', () => {
+  assert.strictEqual(DEPARTMENTS.length, 5);
+  const codes = DEPARTMENTS.map(d => d.code);
+  assert.deepStrictEqual(codes, ['CPH', 'PCH', 'PCT', 'PCG', 'PCL']);
+});
+
+test('contains first and second semesters', () => {
+  assert.deepStrictEqual(SEMESTERS, ['First Semester', 'Second Semester']);
 });

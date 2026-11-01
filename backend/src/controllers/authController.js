@@ -42,7 +42,7 @@ async function register(req, res, next) {
     if (!isValidLevel(level)) {
       return res.status(400).json({
         success: false,
-        message: 'PharmaLink is strictly for Faculty of Pharmacy students in 200L, 300L, 400L, or 500L.'
+        message: 'BD-Pharm is strictly for Faculty of Pharmacy students in 200L, 300L, 400L, or 500L.'
       });
     }
 

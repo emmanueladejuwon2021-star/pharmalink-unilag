@@ -7,7 +7,7 @@ function getHealth(req, res) {
 
   res.status(200).json({
     status: 'ok',
-    appName: 'PharmaLink UNILAG API',
+    appName: 'BD-Pharm API',
     uptimeSeconds: Math.floor((Date.now() - uptimeStart) / 1000),
     timestamp: new Date().toISOString(),
     database: dbStatus,

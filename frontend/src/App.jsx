@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import AuthModal from './components/AuthModal';
 import VerificationSection from './components/VerificationSection';
+import AcademicSection from './components/AcademicSection';
 
 export default function App() {
   const [health, setHealth] = useState({
@@ -24,7 +25,7 @@ export default function App() {
 
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(() => localStorage.getItem('pharmalink_token') || null);
-  const [activeView, setActiveView] = useState('feed'); // 'feed' | 'verification'
+  const [activeView, setActiveView] = useState('feed'); // 'feed' | 'verification' | 'levels'
 
   useEffect(() => {
     fetch('/api/health')
@@ -100,8 +101,8 @@ export default function App() {
         <div className="brand-section">
           <div className="logo-badge">PANS</div>
           <div className="brand-title">
-            PharmaLink UNILAG
-            <span className="tagline">| Where UNILAG Pharmacy Links</span>
+            BD-Pharm
+            <span className="tagline">| UNILAG Pharmacy Network</span>
           </div>
         </div>
 
@@ -157,13 +158,18 @@ export default function App() {
             <ShieldCheck />
             <span>Student Verification</span>
           </a>
+          <a
+            href="#levels"
+            className={`nav-link ${activeView === 'levels' ? 'active' : ''}`}
+            onClick={(e) => { e.preventDefault(); setActiveView('levels'); }}
+            data-testid="nav-levels"
+          >
+            <GraduationCap />
+            <span>Levels & Courses</span>
+          </a>
           <a href="#vault" className="nav-link" data-testid="nav-vault">
             <BookOpen />
             <span>Materials Vault</span>
-          </a>
-          <a href="#levels" className="nav-link" data-testid="nav-levels">
-            <GraduationCap />
-            <span>Levels (200L–500L)</span>
           </a>
           <a href="#pans" className="nav-link" data-testid="nav-pans">
             <Bell />
@@ -182,56 +188,82 @@ export default function App() {
         {/* Content */}
         <main className="main-content">
           <div className="notice-box">
-            <strong>Welcome to PharmaLink UNILAG:</strong> A dedicated, private academic and social network restricted strictly to verified 200L–500L Pharmacy students at the University of Lagos.
+            <strong>Welcome to BD-Pharm:</strong> A dedicated, private academic and social network restricted strictly to verified 200L–500L Pharmacy students at the University of Lagos.
           </div>
 
           {!user ? (
             <AuthModal onAuthSuccess={handleAuthSuccess} />
           ) : (
             <div>
-              {/* Verification Section Component (EPIC-003) */}
-              <VerificationSection
-                user={user}
-                token={token}
-                onStatusUpdated={handleStatusUpdated}
-              />
+              {/* Verification Section */}
+              {activeView === 'verification' && (
+                <VerificationSection
+                  user={user}
+                  token={token}
+                  onStatusUpdated={handleStatusUpdated}
+                />
+              )}
 
+              {/* Academic Structure Section (EPIC-004) */}
+              {activeView === 'levels' && (
+                <AcademicSection
+                  user={user}
+                  token={token}
+                />
+              )}
+
+              {/* Feed & Default Dashboard View */}
               {activeView === 'feed' && (
-                <div className="card" data-testid="authenticated-dashboard">
-                  <h2 className="card-title">Welcome back, {user.fullName}!</h2>
-                  <p className="card-subtitle">
-                    Academic Level: <strong>{user.level}</strong> &bull; Verification Status:{' '}
-                    <span style={{
-                      textTransform: 'uppercase',
-                      fontWeight: 600,
-                      color: user.verificationStatus === 'verified' ? 'var(--success)' : 'var(--accent)'
-                    }}>
-                      {user.verificationStatus}
-                    </span>
-                  </p>
+                <div>
+                  <VerificationSection
+                    user={user}
+                    token={token}
+                    onStatusUpdated={handleStatusUpdated}
+                  />
 
-                  <div className="feature-grid">
-                    <div className="feature-box">
-                      <h4>Student Verification (EPIC-003)</h4>
-                      <p>
-                        Current status: <strong>{user.verificationStatus.toUpperCase()}</strong>.
-                        Submit your UNILAG ID card or signed course form to unlock community discussions and academic vault materials.
-                      </p>
-                    </div>
+                  <AcademicSection
+                    user={user}
+                    token={token}
+                  />
 
-                    <div className="feature-box">
-                      <h4>Student Authentication (EPIC-002)</h4>
-                      <p>Secure JWT session active. Passwords salted with bcrypt. Access token securely scoped to your UNILAG identity.</p>
-                    </div>
+                  <div className="card" data-testid="authenticated-dashboard">
+                    <h2 className="card-title">Welcome back, {user.fullName}!</h2>
+                    <p className="card-subtitle">
+                      Academic Level: <strong>{user.level}</strong> &bull; Verification Status:{' '}
+                      <span style={{
+                        textTransform: 'uppercase',
+                        fontWeight: 600,
+                        color: user.verificationStatus === 'verified' ? 'var(--success)' : 'var(--accent)'
+                      }}>
+                        {user.verificationStatus}
+                      </span>
+                    </p>
 
-                    <div className="feature-box">
-                      <h4>Materials Vault</h4>
-                      <p>Browse past questions, syllabus summaries, and laboratory practical manuals tailored to {user.level}.</p>
-                    </div>
+                    <div className="feature-grid">
+                      <div className="feature-box">
+                        <h4>Academic Structure (EPIC-004)</h4>
+                        <p>
+                          Explore accredited curriculum across all 5 UNILAG Pharmacy departments (CPH, PCH, PCT, PCG, PCL) and active sessions.
+                        </p>
+                      </div>
 
-                    <div className="feature-box">
-                      <h4>PANS Official Notices</h4>
-                      <p>Stay informed with faculty announcements and level updates from official representatives.</p>
+                      <div className="feature-box">
+                        <h4>Student Verification (EPIC-003)</h4>
+                        <p>
+                          Current status: <strong>{user.verificationStatus.toUpperCase()}</strong>.
+                          Submit your UNILAG ID card or signed course form for community privileges.
+                        </p>
+                      </div>
+
+                      <div className="feature-box">
+                        <h4>Student Authentication (EPIC-002)</h4>
+                        <p>Secure JWT session active. Passwords salted with bcrypt. Access token securely scoped to your UNILAG identity.</p>
+                      </div>
+
+                      <div className="feature-box">
+                        <h4>Materials Vault</h4>
+                        <p>Browse past questions, syllabus summaries, and laboratory practical manuals tailored to {user.level}.</p>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -243,7 +275,7 @@ export default function App() {
 
       {/* Footer */}
       <footer className="app-footer">
-        PharmaLink UNILAG &copy; {new Date().getFullYear()} Faculty of Pharmacy, University of Lagos. All rights reserved.
+        BD-Pharm &copy; {new Date().getFullYear()} Faculty of Pharmacy, University of Lagos. All rights reserved.
       </footer>
     </div>
   );
