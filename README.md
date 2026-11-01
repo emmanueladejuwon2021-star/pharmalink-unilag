@@ -36,7 +36,7 @@ MERN stack (MongoDB, Express.js, React, Node.js).
 
 ## Project Status
 
-Foundation groundwork, student authentication, verification, and academic structure management have been built and tested.
+Foundation groundwork, student authentication, verification, academic structure management, and user profiles & directory have been built and tested.
 
 ## How to Use This Repository
 
@@ -121,6 +121,12 @@ Verify API status by querying:
 - `PATCH /api/academic/courses/:id` — Update course details (Admin only)
 - `DELETE /api/academic/courses/:id` — Delete a course (Admin only)
 
+### User Profiles and Identity Endpoints (EPIC-005)
+- `GET /api/profile/me` — Retrieve active student profile (including department, bio, academic level, research interests, social links, and activity stats)
+- `PATCH /api/profile/me` — Update student profile details (bio max 300 chars, department affiliation, interests array, and contact links)
+- `GET /api/profile/:id` — Retrieve public profile card of any verified student
+- `GET /api/profile/directory/students` — Faculty Student Directory searchable by name, matric number, level (200L–500L), and department (CPH, PCH, PCT, PCG, PCL)
+
 ## Master Feature Checklist
 
 All features start as **Not Started**. Status must be updated honestly as work progresses (Not Started → In Progress → Implemented → Tested → Verified in Production). A feature is never marked Implemented based on placeholders or mock data.
@@ -142,7 +148,7 @@ All features start as **Not Started**. Status must be updated honestly as work p
 
 ### High Priority
 
-- [ ] **EPIC-005** — User Profiles and Identity
+- [x] **EPIC-005** — User Profiles and Identity (Tested)
 - [ ] **EPIC-009** — Likes, Re-Links and Bookmarks
 - [ ] **EPIC-010** — Following and Social Connections
 - [ ] **EPIC-013** — Global Search and Discovery
