@@ -30,6 +30,8 @@ const {
   isValidLevel
 } = require('./validation');
 
+const feed = require('./feed');
+
 module.exports = {
   ELIGIBLE_LEVELS,
   USER_ROLES,
@@ -56,5 +58,6 @@ module.exports = {
   isProfileViewable,
   isValidUnilagEmail,
   isValidMatricNumber,
-  isValidLevel
+  isValidLevel,
+  ...feed
 };

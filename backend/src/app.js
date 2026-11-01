@@ -8,6 +8,7 @@ const authRoutes = require('./routes/authRoutes');
 const verificationRoutes = require('./routes/verificationRoutes');
 const academicRoutes = require('./routes/academicRoutes');
 const profileRoutes = require('./routes/profileRoutes');
+const feedRoutes = require('./routes/feedRoutes');
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 
 const app = express();
@@ -39,6 +40,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/verification', verificationRoutes);
 app.use('/api/academic', academicRoutes);
 app.use('/api/profiles', profileRoutes);
+app.use('/api/feed', feedRoutes);
 
 // Root fallback
 app.get('/', (req, res) => {

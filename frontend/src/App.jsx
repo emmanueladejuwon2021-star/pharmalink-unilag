@@ -16,6 +16,7 @@ import VerificationPanel from './components/VerificationPanel';
 import AdminVerificationList from './components/AdminVerificationList';
 import AcademicHub from './components/AcademicHub';
 import ProfileHub from './components/ProfileHub';
+import SocialFeed from './components/SocialFeed';
 
 export default function App() {
   const [health, setHealth] = useState({
@@ -249,6 +250,8 @@ export default function App() {
                     setUser((prev) => ({ ...prev, level: student.level }));
                   }}
                 />
+              ) : activeTab === 'feed' ? (
+                <SocialFeed user={user} token={token} />
               ) : (
                 <div className="card" data-testid="authenticated-dashboard">
                   <h2 className="card-title">Welcome back, {user.fullName}!</h2>
