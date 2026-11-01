@@ -8,9 +8,11 @@ import {
   Layers,
   User as UserIcon,
   GraduationCap,
-  LogOut
+  LogOut,
+  CheckCircle2
 } from 'lucide-react';
 import AuthModal from './components/AuthModal';
+import VerificationSection from './components/VerificationSection';
 
 export default function App() {
   const [health, setHealth] = useState({
@@ -22,6 +24,7 @@ export default function App() {
 
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(() => localStorage.getItem('pharmalink_token') || null);
+  const [activeView, setActiveView] = useState('feed'); // 'feed' | 'verification'
 
   useEffect(() => {
     fetch('/api/health')
@@ -81,6 +84,13 @@ export default function App() {
     localStorage.removeItem('pharmalink_token');
     setToken(null);
     setUser(null);
+    setActiveView('feed');
+  };
+
+  const handleStatusUpdated = (newStatus) => {
+    if (user) {
+      setUser({ ...user, verificationStatus: newStatus });
+    }
   };
 
   return (
@@ -100,6 +110,11 @@ export default function App() {
             <div className="user-badge" data-testid="user-session-badge">
               <UserIcon size={14} />
               <span><strong>{user.fullName}</strong> ({user.level})</span>
+              {user.verificationStatus === 'verified' && (
+                <span title="Verified Pharmacy Student" style={{ display: 'inline-flex', alignItems: 'center' }}>
+                  <CheckCircle2 size={13} color="var(--success)" />
+                </span>
+              )}
               <button onClick={handleLogout} className="logout-btn" title="Sign Out">
                 <LogOut size={13} />
               </button>
@@ -124,31 +139,41 @@ export default function App() {
       <div className="app-body">
         {/* Sidebar */}
         <aside className="sidebar">
-          <a href="#feed" className="nav-link active">
+          <a
+            href="#feed"
+            className={`nav-link ${activeView === 'feed' ? 'active' : ''}`}
+            onClick={(e) => { e.preventDefault(); setActiveView('feed'); }}
+            data-testid="nav-feed"
+          >
             <Compass />
             <span>Social Feed</span>
           </a>
-          <a href="#vault" className="nav-link">
-            <BookOpen />
-            <span>Materials Vault</span>
-          </a>
-          <a href="#levels" className="nav-link">
-            <GraduationCap />
-            <span>Levels (200L–500L)</span>
-          </a>
-          <a href="#verification" className="nav-link">
+          <a
+            href="#verification"
+            className={`nav-link ${activeView === 'verification' ? 'active' : ''}`}
+            onClick={(e) => { e.preventDefault(); setActiveView('verification'); }}
+            data-testid="nav-verification"
+          >
             <ShieldCheck />
             <span>Student Verification</span>
           </a>
-          <a href="#pans" className="nav-link">
+          <a href="#vault" className="nav-link" data-testid="nav-vault">
+            <BookOpen />
+            <span>Materials Vault</span>
+          </a>
+          <a href="#levels" className="nav-link" data-testid="nav-levels">
+            <GraduationCap />
+            <span>Levels (200L–500L)</span>
+          </a>
+          <a href="#pans" className="nav-link" data-testid="nav-pans">
             <Bell />
             <span>PANS Official</span>
           </a>
-          <a href="#quizzes" className="nav-link">
+          <a href="#quizzes" className="nav-link" data-testid="nav-quizzes">
             <Layers />
             <span>Daily Dose Quizzes</span>
           </a>
-          <a href="#support" className="nav-link">
+          <a href="#support" className="nav-link" data-testid="nav-support">
             <HelpCircle />
             <span>Help & Guidelines</span>
           </a>
@@ -163,40 +188,54 @@ export default function App() {
           {!user ? (
             <AuthModal onAuthSuccess={handleAuthSuccess} />
           ) : (
-            <div className="card" data-testid="authenticated-dashboard">
-              <h2 className="card-title">Welcome back, {user.fullName}!</h2>
-              <p className="card-subtitle">
-                Academic Level: <strong>{user.level}</strong> &bull; Verification Status:{' '}
-                <span style={{
-                  textTransform: 'uppercase',
-                  fontWeight: 600,
-                  color: user.verificationStatus === 'verified' ? 'var(--success)' : 'var(--accent)'
-                }}>
-                  {user.verificationStatus}
-                </span>
-              </p>
+            <div>
+              {/* Verification Section Component (EPIC-003) */}
+              <VerificationSection
+                user={user}
+                token={token}
+                onStatusUpdated={handleStatusUpdated}
+              />
 
-              <div className="feature-grid">
-                <div className="feature-box">
-                  <h4>Student Authentication (EPIC-002)</h4>
-                  <p>Secure JWT session active. Passwords salted with bcrypt. Access token securely scoped to your UNILAG identity.</p>
-                </div>
+              {activeView === 'feed' && (
+                <div className="card" data-testid="authenticated-dashboard">
+                  <h2 className="card-title">Welcome back, {user.fullName}!</h2>
+                  <p className="card-subtitle">
+                    Academic Level: <strong>{user.level}</strong> &bull; Verification Status:{' '}
+                    <span style={{
+                      textTransform: 'uppercase',
+                      fontWeight: 600,
+                      color: user.verificationStatus === 'verified' ? 'var(--success)' : 'var(--accent)'
+                    }}>
+                      {user.verificationStatus}
+                    </span>
+                  </p>
 
-                <div className="feature-box">
-                  <h4>Matriculation Verification</h4>
-                  <p>Matric Number: <strong>{user.matricNumber}</strong>. Submit your student ID card or course form for full community access.</p>
-                </div>
+                  <div className="feature-grid">
+                    <div className="feature-box">
+                      <h4>Student Verification (EPIC-003)</h4>
+                      <p>
+                        Current status: <strong>{user.verificationStatus.toUpperCase()}</strong>.
+                        Submit your UNILAG ID card or signed course form to unlock community discussions and academic vault materials.
+                      </p>
+                    </div>
 
-                <div className="feature-box">
-                  <h4>Materials Vault</h4>
-                  <p>Browse past questions, syllabus summaries, and laboratory practical manuals tailored to {user.level}.</p>
-                </div>
+                    <div className="feature-box">
+                      <h4>Student Authentication (EPIC-002)</h4>
+                      <p>Secure JWT session active. Passwords salted with bcrypt. Access token securely scoped to your UNILAG identity.</p>
+                    </div>
 
-                <div className="feature-box">
-                  <h4>PANS Official Notices</h4>
-                  <p>Stay informed with faculty announcements and level updates from official representatives.</p>
+                    <div className="feature-box">
+                      <h4>Materials Vault</h4>
+                      <p>Browse past questions, syllabus summaries, and laboratory practical manuals tailored to {user.level}.</p>
+                    </div>
+
+                    <div className="feature-box">
+                      <h4>PANS Official Notices</h4>
+                      <p>Stay informed with faculty announcements and level updates from official representatives.</p>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           )}
         </main>

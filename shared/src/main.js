@@ -9,7 +9,8 @@ const {
 const {
   isValidUnilagEmail,
   isValidMatricNumber,
-  isValidLevel
+  isValidLevel,
+  isValidVerificationDocType
 } = require('./validation');
 
 module.exports = {
@@ -20,5 +21,6 @@ module.exports = {
   VERIFICATION_DOC_TYPES,
   isValidUnilagEmail,
   isValidMatricNumber,
-  isValidLevel
+  isValidLevel,
+  isValidVerificationDocType
 };
