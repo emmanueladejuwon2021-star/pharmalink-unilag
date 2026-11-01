@@ -112,6 +112,15 @@ Verify API status by querying:
 - `GET /api/verification/admin/requests` — View student submission queue (PANS executives and platform admins)
 - `POST /api/verification/admin/review/:id` — Review, approve, or reject student verification submission
 
+### Academic Structure Endpoints (EPIC-004)
+- `GET /api/academic/current-period` — Live UNILAG academic session (e.g. 2025/2026) and semester, computed from the university calendar
+- `GET /api/academic/courses?level=300L&search=...` — Faculty of Pharmacy course catalogue (requires sign-in)
+- `POST /api/academic/courses` — Add a course to the catalogue (admins and moderators only; duplicate codes rejected)
+- `PATCH /api/academic/courses/:id` — Update or deactivate a course (admins and moderators only)
+- `GET /api/academic/my-period` — The signed-in student's academic record (level, session, semester, progression history)
+- `PUT /api/academic/my-period` — Student updates their own session and semester
+- `POST /api/academic/admin/promote/:userId` — Promote a student one level with full progression history (admins, moderators, PANS executives)
+
 ## Master Feature Checklist
 
 All features start as **Not Started**. Status must be updated honestly as work progresses (Not Started → In Progress → Implemented → Tested → Verified in Production). A feature is never marked Implemented based on placeholders or mock data.
@@ -121,7 +130,7 @@ All features start as **Not Started**. Status must be updated honestly as work p
 - [x] **EPIC-001** — Project Foundation and Architecture (Tested)
 - [x] **EPIC-002** — Authentication and Account Security (Tested)
 - [x] **EPIC-003** — Student Verification System (Tested)
-- [ ] **EPIC-004** — Academic Structure and Session Management
+- [x] **EPIC-004** — Academic Structure and Session Management (Tested)
 - [ ] **EPIC-006** — Social Feed and Content Discovery
 - [ ] **EPIC-007** — Post Creation and Management
 - [ ] **EPIC-008** — Comments and Discussions

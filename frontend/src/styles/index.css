@@ -431,3 +431,43 @@ button {
   border-top: 1px solid var(--border);
   background: var(--surface);
 }
+
+/* EPIC-004: Academic Hub course catalogue rows */
+.course-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-bottom: 6px;
+  background: #f8fafc;
+}
+
+.course-code {
+  font-weight: 700;
+  color: var(--primary);
+  min-width: 70px;
+}
+
+.course-title {
+  flex: 1 1 auto;
+  min-width: 140px;
+}
+
+.course-meta {
+  color: var(--text-muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+@keyframes pharma-spin {
+  to { transform: rotate(360deg); }
+}
+
+.spin {
+  animation: pharma-spin 1s linear infinite;
+  display: inline-block;
+  vertical-align: middle;
+}

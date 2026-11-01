@@ -6,6 +6,7 @@ const config = require('./config');
 const healthRoutes = require('./routes/healthRoutes');
 const authRoutes = require('./routes/authRoutes');
 const verificationRoutes = require('./routes/verificationRoutes');
+const academicRoutes = require('./routes/academicRoutes');
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 
 const app = express();
@@ -35,6 +36,7 @@ if (config.env !== 'test') {
 app.use('/api', healthRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/verification', verificationRoutes);
+app.use('/api/academic', academicRoutes);
 
 // Root fallback
 app.get('/', (req, res) => {
