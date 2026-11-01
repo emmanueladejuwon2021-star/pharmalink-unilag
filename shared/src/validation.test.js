@@ -4,7 +4,11 @@ const {
   isValidUnilagEmail,
   isValidMatricNumber,
   isValidLevel,
-  isValidVerificationDocType
+  isValidVerificationDocType,
+  isValidDepartmentCode,
+  isValidSemester,
+  isValidAcademicSession,
+  isValidCourseCode
 } = require('./validation');
 
 test('validates UNILAG student emails correctly', () => {
@@ -39,4 +43,37 @@ test('validates acceptable verification document types', () => {
   assert.strictEqual(isValidVerificationDocType('Docket / Exam Slip'), true);
   assert.strictEqual(isValidVerificationDocType('Driver License'), false);
   assert.strictEqual(isValidVerificationDocType(''), false);
+});
+
+test('validates pharmacy department codes', () => {
+  assert.strictEqual(isValidDepartmentCode('CPH'), true);
+  assert.strictEqual(isValidDepartmentCode('PCH'), true);
+  assert.strictEqual(isValidDepartmentCode('PCT'), true);
+  assert.strictEqual(isValidDepartmentCode('PCG'), true);
+  assert.strictEqual(isValidDepartmentCode('PCL'), true);
+  assert.strictEqual(isValidDepartmentCode('cph'), true); // case-insensitive
+  assert.strictEqual(isValidDepartmentCode('MED'), false);
+  assert.strictEqual(isValidDepartmentCode(''), false);
+});
+
+test('validates academic semesters', () => {
+  assert.strictEqual(isValidSemester('First Semester'), true);
+  assert.strictEqual(isValidSemester('Second Semester'), true);
+  assert.strictEqual(isValidSemester('Summer Semester'), false);
+});
+
+test('validates academic session format (YYYY/YYYY)', () => {
+  assert.strictEqual(isValidAcademicSession('2024/2025'), true);
+  assert.strictEqual(isValidAcademicSession('2025/2026'), true);
+  assert.strictEqual(isValidAcademicSession('2024-2025'), false);
+  assert.strictEqual(isValidAcademicSession('2024'), false);
+});
+
+test('validates course codes format', () => {
+  assert.strictEqual(isValidCourseCode('PCH 301'), true);
+  assert.strictEqual(isValidCourseCode('PCT 402'), true);
+  assert.strictEqual(isValidCourseCode('CPH 501'), true);
+  assert.strictEqual(isValidCourseCode('pch 301'), true);
+  assert.strictEqual(isValidCourseCode('PCH301'), false); // missing space
+  assert.strictEqual(isValidCourseCode('PHARM 301'), false); // 5 letters
 });

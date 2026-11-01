@@ -1,8 +1,14 @@
 /**
- * UNILAG Student Email, Matric Number, and Verification Validators
+ * BD-Pharm / UNILAG Student Email, Matric Number, and Academic Structure Validators
  */
 
-const { ELIGIBLE_LEVELS, USER_ROLES, VERIFICATION_DOC_TYPES } = require('./index');
+const {
+  ELIGIBLE_LEVELS,
+  USER_ROLES,
+  VERIFICATION_DOC_TYPES,
+  DEPARTMENTS,
+  SEMESTERS
+} = require('./index');
 
 /**
  * Validate UNILAG student email
@@ -37,9 +43,44 @@ function isValidVerificationDocType(docType) {
   return VERIFICATION_DOC_TYPES.includes(docType);
 }
 
+/**
+ * Validate Department Code
+ */
+function isValidDepartmentCode(code) {
+  if (!code || typeof code !== 'string') return false;
+  return DEPARTMENTS.some((dept) => dept.code === code.trim().toUpperCase());
+}
+
+/**
+ * Validate Semester
+ */
+function isValidSemester(semester) {
+  return SEMESTERS.includes(semester);
+}
+
+/**
+ * Validate Academic Session (e.g. 2024/2025)
+ */
+function isValidAcademicSession(session) {
+  if (!session || typeof session !== 'string') return false;
+  return /^\d{4}\/\d{4}$/.test(session.trim());
+}
+
+/**
+ * Validate Course Code (e.g., "PCH 301", "PCT 402")
+ */
+function isValidCourseCode(code) {
+  if (!code || typeof code !== 'string') return false;
+  return /^[A-Z]{3}\s\d{3}$/.test(code.trim().toUpperCase());
+}
+
 module.exports = {
   isValidUnilagEmail,
   isValidMatricNumber,
   isValidLevel,
-  isValidVerificationDocType
+  isValidVerificationDocType,
+  isValidDepartmentCode,
+  isValidSemester,
+  isValidAcademicSession,
+  isValidCourseCode
 };

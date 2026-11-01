@@ -3,14 +3,20 @@ const {
   USER_ROLES,
   VERIFICATION_STATUS,
   MATERIAL_CATEGORIES,
-  VERIFICATION_DOC_TYPES
+  VERIFICATION_DOC_TYPES,
+  DEPARTMENTS,
+  SEMESTERS
 } = require('./index');
 
 const {
   isValidUnilagEmail,
   isValidMatricNumber,
   isValidLevel,
-  isValidVerificationDocType
+  isValidVerificationDocType,
+  isValidDepartmentCode,
+  isValidSemester,
+  isValidAcademicSession,
+  isValidCourseCode
 } = require('./validation');
 
 module.exports = {
@@ -19,8 +25,14 @@ module.exports = {
   VERIFICATION_STATUS,
   MATERIAL_CATEGORIES,
   VERIFICATION_DOC_TYPES,
+  DEPARTMENTS,
+  SEMESTERS,
   isValidUnilagEmail,
   isValidMatricNumber,
   isValidLevel,
-  isValidVerificationDocType
+  isValidVerificationDocType,
+  isValidDepartmentCode,
+  isValidSemester,
+  isValidAcademicSession,
+  isValidCourseCode
 };

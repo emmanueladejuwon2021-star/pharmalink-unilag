@@ -1,5 +1,5 @@
 /**
- * PharmaLink UNILAG Shared Constants
+ * BD-Pharm / UNILAG Shared Constants
  * Strict product boundaries and domain entities
  */
 
@@ -41,10 +41,44 @@ const VERIFICATION_DOC_TYPES = [
   'Docket / Exam Slip'
 ];
 
+// UNILAG Faculty of Pharmacy Academic Departments (EPIC-004)
+const DEPARTMENTS = [
+  {
+    code: 'CPH',
+    name: 'Clinical Pharmacy and Biopharmacy',
+    description: 'Clinical therapeutics, patient care, biopharmaceutics, and clinical pharmacy practice.'
+  },
+  {
+    code: 'PCH',
+    name: 'Pharmaceutical Chemistry',
+    description: 'Medicinal chemistry, pharmaceutical analysis, drug design, and organic synthesis.'
+  },
+  {
+    code: 'PCT',
+    name: 'Pharmaceutics and Pharmaceutical Technology',
+    description: 'Dosage formulation, physical pharmacy, industrial manufacturing, and sterile compounding.'
+  },
+  {
+    code: 'PCG',
+    name: 'Pharmacognosy',
+    description: 'Medicinal plants, natural products, phytochemistry, and herbal quality assurance.'
+  },
+  {
+    code: 'PCL',
+    name: 'Pharmacology, Therapeutics and Toxicology',
+    description: 'Mechanisms of drug action, pharmacokinetics, organ toxicology, and applied therapeutics.'
+  }
+];
+
+// Academic Semesters
+const SEMESTERS = ['First Semester', 'Second Semester'];
+
 module.exports = {
   ELIGIBLE_LEVELS,
   USER_ROLES,
   VERIFICATION_STATUS,
   MATERIAL_CATEGORIES,
-  VERIFICATION_DOC_TYPES
+  VERIFICATION_DOC_TYPES,
+  DEPARTMENTS,
+  SEMESTERS
 };

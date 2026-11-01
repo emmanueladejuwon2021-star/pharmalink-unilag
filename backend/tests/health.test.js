@@ -13,7 +13,7 @@ describe('API Foundation and Health Check', () => {
     const res = await request(app).get('/api/health');
     expect(res.statusCode).toBe(200);
     expect(res.body).toHaveProperty('status', 'ok');
-    expect(res.body).toHaveProperty('appName', 'PharmaLink UNILAG API');
+    expect(res.body).toHaveProperty('appName', 'BD-Pharm API');
     expect(res.body).toHaveProperty('database');
     expect(res.body.database).toHaveProperty('state');
   });

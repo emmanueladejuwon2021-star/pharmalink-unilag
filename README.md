@@ -1,8 +1,8 @@
-# PharmaLink UNILAG
+# BD-Pharm (UNILAG)
 
 **Where UNILAG Pharmacy Links.**
 
-PharmaLink UNILAG is a private academic and social network for verified University of Lagos (UNILAG) Faculty of Pharmacy students (200L–500L). It provides a trusted space for students to connect across levels, discuss academic matters, discover and share useful materials, ask questions, and receive relevant official updates from PANS and authorized representatives.
+BD-Pharm is a private academic and social network for verified University of Lagos (UNILAG) Faculty of Pharmacy students (200L–500L). It provides a trusted space for students to connect across levels, discuss academic matters, discover and share useful materials, ask questions, and receive relevant official updates from PANS and authorized representatives.
 
 **Primary users:** Verified 200L, 300L, 400L, and 500L Pharmacy students; PANS executives and level representatives; platform administrators and moderators.
 
@@ -10,7 +10,7 @@ PharmaLink UNILAG is a private academic and social network for verified Universi
 
 ## Product Vision
 
-PharmaLink UNILAG is a private, trusted academic and social network where verified Pharmacy students at the University of Lagos can connect across levels, discuss academic matters, discover useful materials, ask questions, share experience, and receive relevant official updates.
+BD-Pharm is a private, trusted academic and social network where verified Pharmacy students at the University of Lagos can connect across levels, discuss academic matters, discover useful materials, ask questions, share experience, and receive relevant official updates.
 
 ### Core Product Pillars
 
@@ -36,7 +36,7 @@ MERN stack (MongoDB, Express.js, React, Node.js).
 
 ## Project Status
 
-Foundation groundwork, core authentication, and the student verification system have been built and tested.
+Foundation groundwork, student authentication, verification, and academic structure management have been built and tested.
 
 ## How to Use This Repository
 
@@ -49,10 +49,10 @@ Foundation groundwork, core authentication, and the student verification system 
 
 ## Setup & Installation
 
-PharmaLink UNILAG is built with a modular MERN architecture organized into workspaces:
+BD-Pharm is built with a modular MERN architecture organized into workspaces:
 - `backend`: Express.js REST API with Mongoose, Helmet, and Jest tests.
 - `frontend`: React 18 with Vite, Lucide icons, responsive compact UI, and Vitest tests.
-- `shared`: Domain validation rules (UNILAG email, matric, level checks, document types) and constants.
+- `shared`: Domain validation rules (UNILAG email, matric, level checks, departments, course codes) and constants.
 
 ### Prerequisites
 - Node.js >= 18.0.0
@@ -110,6 +110,17 @@ Verify API status by querying:
 - `GET /api/verification/requests` — List verification requests (Admin, Moderator, and PANS Exec roles)
 - `PATCH /api/verification/requests/:id/review` — Review verification request with approve or reject action and feedback reason (Admin & Moderator roles)
 
+### Academic Structure Endpoints (EPIC-004)
+- `GET /api/academic/departments` — List all 5 Faculty departments (Clinical Pharmacy, Pharm Chem, Pharmaceutics, Pharmacognosy, Pharmacology)
+- `GET /api/academic/sessions` — List academic sessions with active status
+- `GET /api/academic/sessions/current` — Get active session and current semester
+- `POST /api/academic/sessions` — Create academic session (Admin only)
+- `PATCH /api/academic/sessions/:id/set-current` — Activate session as current (Admin only)
+- `GET /api/academic/courses` — Search and filter courses by level (200L–500L), department (CPH, PCH, PCT, PCG, PCL), semester, and keywords
+- `POST /api/academic/courses` — Register a new course into the curriculum (Admin only)
+- `PATCH /api/academic/courses/:id` — Update course details (Admin only)
+- `DELETE /api/academic/courses/:id` — Delete a course (Admin only)
+
 ## Master Feature Checklist
 
 All features start as **Not Started**. Status must be updated honestly as work progresses (Not Started → In Progress → Implemented → Tested → Verified in Production). A feature is never marked Implemented based on placeholders or mock data.
@@ -119,7 +130,7 @@ All features start as **Not Started**. Status must be updated honestly as work p
 - [x] **EPIC-001** — Project Foundation and Architecture (Tested)
 - [x] **EPIC-002** — Authentication and Account Security (Tested)
 - [x] **EPIC-003** — Student Verification System (Tested)
-- [ ] **EPIC-004** — Academic Structure and Session Management
+- [x] **EPIC-004** — Academic Structure and Session Management (Tested)
 - [ ] **EPIC-006** — Social Feed and Content Discovery
 - [ ] **EPIC-007** — Post Creation and Management
 - [ ] **EPIC-008** — Comments and Discussions
@@ -167,15 +178,6 @@ See `BLUEPRINT.md` for full objectives, features, acceptance criteria, and depen
 - [docs/PREREQUISITES.md](docs/PREREQUISITES.md) — Prerequisites and setup expectations.
 - [.agents/](.agents/) — Additional agent rules and context.
 
-## Recommended Next Steps for Coding Agents
-
-1. Begin with **EPIC-001** (Project Foundation and Architecture).
-2. Follow the mandatory instructions in AGENTS.md and section 10 of the Blueprint.
-3. Inspect this repository fully before making any changes.
-4. Create testable GitHub issues before implementing features.
-5. Update the feature checklist in this README after each verified change.
-6. Never mark a feature complete until acceptance criteria and tests pass.
-
 ---
 
-*This groundwork was prepared so that any coding agent can begin building PharmaLink UNILAG from a clear, complete, and consistent foundation. The full Blueprint text has been preserved without omission.*
+*This groundwork was prepared so that any coding agent can begin building BD-Pharm from a clear, complete, and consistent foundation.*
