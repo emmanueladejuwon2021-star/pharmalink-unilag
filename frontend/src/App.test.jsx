@@ -120,8 +120,27 @@ const mockPosts = [
   }
 ];
 
+const mockComments = [
+  {
+    _id: 'cm1',
+    post: 'p1',
+    content: 'Emulsion stability requires surfactant HLB balance matching the oil phase.',
+    author: {
+      _id: 'u3',
+      fullName: 'Babatunde Fashola',
+      level: '400L',
+      department: 'PCT',
+      verificationStatus: 'verified',
+      role: 'student'
+    },
+    isAuthor: false,
+    isDeleted: false,
+    createdAt: new Date().toISOString()
+  }
+];
+
 function setupGlobalFetch(userOverrides = {}) {
-  global.fetch = vi.fn().mockImplementation((url) => {
+  global.fetch = vi.fn().mockImplementation((url, options = {}) => {
     if (url.includes('/api/health')) {
       return Promise.resolve({
         ok: true,
@@ -205,6 +224,41 @@ function setupGlobalFetch(userOverrides = {}) {
           success: true,
           students: mockPeerStudents,
           pagination: { page: 1, limit: 20, total: 2, totalPages: 1 }
+        })
+      });
+    }
+    if (url.includes('/comments')) {
+      if (options.method === 'POST') {
+        const body = options.body ? JSON.parse(options.body) : {};
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            success: true,
+            comment: {
+              _id: 'cm2',
+              post: 'p1',
+              content: body.content || 'New discussion reply',
+              author: {
+                _id: 'u1',
+                fullName: 'Chioma Okeke',
+                level: '300L',
+                department: 'PCH',
+                verificationStatus: 'verified',
+                role: 'student'
+              },
+              isAuthor: true,
+              isDeleted: false,
+              createdAt: new Date().toISOString()
+            }
+          })
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          success: true,
+          comments: mockComments,
+          count: mockComments.length
         })
       });
     }
@@ -449,6 +503,63 @@ describe('Social Feed and Post Management (EPIC-006 & EPIC-007)', () => {
     await waitFor(() => {
       expect(screen.getByTestId('unverified-feed-banner')).toBeInTheDocument();
       expect(screen.queryByTestId('create-post-btn')).not.toBeInTheDocument();
+    });
+  });
+});
+
+describe('Comments and Discussion Threads (EPIC-008)', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    localStorage.clear();
+    localStorage.setItem('pharmalink_token', 'mock-token');
+  });
+
+  it('allows verified student to expand replies and submit a discussion reply', async () => {
+    setupGlobalFetch({ verificationStatus: 'verified' });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('toggle-comments-p1')).toBeInTheDocument();
+    });
+
+    // Expand comments for post p1
+    fireEvent.click(screen.getByTestId('toggle-comments-p1'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('comments-section-p1')).toBeInTheDocument();
+      expect(screen.getByText(/Emulsion stability requires surfactant HLB/i)).toBeInTheDocument();
+      expect(screen.getByTestId('comment-input-p1')).toBeInTheDocument();
+      expect(screen.getByTestId('submit-comment-btn-p1')).toBeInTheDocument();
+    });
+
+    // Submit new reply
+    fireEvent.change(screen.getByTestId('comment-input-p1'), {
+      target: { value: 'Also remember Bancroft rule for phase determination.' }
+    });
+    fireEvent.click(screen.getByTestId('submit-comment-btn-p1'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Also remember Bancroft rule for phase determination.')).toBeInTheDocument();
+    });
+  });
+
+  it('shows verification restriction banner inside comments when student is unverified', async () => {
+    setupGlobalFetch({ verificationStatus: 'unverified' });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('toggle-comments-p1')).toBeInTheDocument();
+    });
+
+    // Expand comments
+    fireEvent.click(screen.getByTestId('toggle-comments-p1'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('comments-section-p1')).toBeInTheDocument();
+      expect(screen.getByTestId('comment-unverified-prompt-p1')).toBeInTheDocument();
+      expect(screen.queryByTestId('comment-input-p1')).not.toBeInTheDocument();
     });
   });
 });

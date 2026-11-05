@@ -36,7 +36,7 @@ MERN stack (MongoDB, Express.js, React, Node.js).
 
 ## Project Status
 
-Foundation groundwork, student authentication, verification, academic structure management, user profiles & directory, and social feed discussion engine have been built and tested.
+Foundation groundwork, student authentication, verification, academic structure management, user profiles & directory, social feed discussion engine, and threaded peer comments have been built and tested.
 
 ## How to Use This Repository
 
@@ -135,6 +135,12 @@ Verify API status by querying:
 - `DELETE /api/posts/:id` — Delete a post (author or admin/moderator only)
 - `POST /api/posts/:id/pin` — Toggle pinned announcement status (Admin, Moderator, and PANS Executive only)
 
+### Comments and Discussions Endpoints (EPIC-008)
+- `GET /api/posts/:postId/comments` — Retrieve threaded discussion comments for a post in chronological order with populated author profile badges
+- `POST /api/posts/:postId/comments` — Add a discussion comment or reply (verified students only; awards +2 reputation points and increments post replies counter)
+- `PATCH /api/posts/:postId/comments/:commentId` — Edit comment content (author or admin only)
+- `DELETE /api/posts/:postId/comments/:commentId` — Soft-delete a comment (author, admin, or moderator only; decrements post replies counter)
+
 ## Master Feature Checklist
 
 All features start as **Not Started**. Status must be updated honestly as work progresses (Not Started → In Progress → Implemented → Tested → Verified in Production). A feature is never marked Implemented based on placeholders or mock data.
@@ -147,7 +153,7 @@ All features start as **Not Started**. Status must be updated honestly as work p
 - [x] **EPIC-004** — Academic Structure and Session Management (Tested)
 - [x] **EPIC-006** — Social Feed and Content Discovery (Tested)
 - [x] **EPIC-007** — Post Creation and Management (Tested)
-- [ ] **EPIC-008** — Comments and Discussions
+- [x] **EPIC-008** — Comments and Discussions (Tested)
 - [ ] **EPIC-011** — Materials Vault
 - [ ] **EPIC-012** — File Storage and Document Processing
 - [ ] **EPIC-016** — Administration Dashboard

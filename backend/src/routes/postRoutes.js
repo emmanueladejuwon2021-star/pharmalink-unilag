@@ -7,6 +7,12 @@ const {
   deletePost,
   togglePinPost
 } = require('../controllers/postController');
+const {
+  createComment,
+  getComments,
+  updateComment,
+  deleteComment
+} = require('../controllers/commentController');
 const { requireAuth } = require('../middleware/authMiddleware');
 
 const router = express.Router();
@@ -22,5 +28,11 @@ router.delete('/:id', requireAuth, deletePost);
 
 // Pin / Unpin post
 router.post('/:id/pin', requireAuth, togglePinPost);
+
+// Threaded Comments & Discussions (EPIC-008)
+router.get('/:postId/comments', requireAuth, getComments);
+router.post('/:postId/comments', requireAuth, createComment);
+router.patch('/:postId/comments/:commentId', requireAuth, updateComment);
+router.delete('/:postId/comments/:commentId', requireAuth, deleteComment);
 
 module.exports = router;
