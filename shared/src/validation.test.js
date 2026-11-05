@@ -4,6 +4,8 @@ const {
   isValidUnilagEmail,
   isValidMatricNumber,
   isValidLevel,
+  isValidPostTargetLevel,
+  isValidPostCategory,
   isValidVerificationDocType,
   isValidDepartmentCode,
   isValidSemester,
@@ -34,6 +36,25 @@ test('validates eligible pharmacy student levels', () => {
   assert.strictEqual(isValidLevel('500L'), true);
   assert.strictEqual(isValidLevel('100L'), false);
   assert.strictEqual(isValidLevel('600L'), false);
+});
+
+test('validates post target audience level', () => {
+  assert.strictEqual(isValidPostTargetLevel('All Levels'), true);
+  assert.strictEqual(isValidPostTargetLevel('200L'), true);
+  assert.strictEqual(isValidPostTargetLevel('300L'), true);
+  assert.strictEqual(isValidPostTargetLevel('400L'), true);
+  assert.strictEqual(isValidPostTargetLevel('500L'), true);
+  assert.strictEqual(isValidPostTargetLevel('100L'), false);
+});
+
+test('validates post category', () => {
+  assert.strictEqual(isValidPostCategory('Academic Discussion'), true);
+  assert.strictEqual(isValidPostCategory('Exam Preparation'), true);
+  assert.strictEqual(isValidPostCategory('Lab & Practical'), true);
+  assert.strictEqual(isValidPostCategory('General Announcement'), true);
+  assert.strictEqual(isValidPostCategory('PANS Official'), true);
+  assert.strictEqual(isValidPostCategory('Student Life'), true);
+  assert.strictEqual(isValidPostCategory('Random Spam'), false);
 });
 
 test('validates acceptable verification document types', () => {

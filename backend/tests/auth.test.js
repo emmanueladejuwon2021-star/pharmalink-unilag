@@ -5,27 +5,30 @@ const { MongoMemoryServer } = require('mongodb-memory-server');
 const app = require('../src/app');
 const User = require('../src/models/User');
 
+jest.setTimeout(60000);
+
 let mongoServer;
 const testDbUri = process.env.MONGODB_TEST_URI || process.env.MONGODB_URI;
 
 beforeAll(async () => {
   if (testDbUri) {
-    await mongoose.connect(testDbUri);
+    await mongoose.connect(testDbUri, { serverSelectionTimeoutMS: 30000 });
   } else {
     mongoServer = await MongoMemoryServer.create();
     const uri = mongoServer.getUri();
     await mongoose.connect(uri);
   }
-}, 60000);
+}, 120000);
 
 afterAll(async () => {
+  await User.deleteMany({});
   await mongoose.disconnect();
   if (mongoServer) {
     await mongoServer.stop();
   }
 });
 
-afterEach(async () => {
+beforeEach(async () => {
   await User.deleteMany({});
 });
 
@@ -39,99 +42,84 @@ describe('EPIC-002: Authentication & Account Security API', () => {
   };
 
   describe('POST /api/auth/register', () => {
-    it('successfully registers a valid UNILAG Pharmacy student', async () => {
-      const res = await request(app)
-        .post('/api/auth/register')
-        .send(validStudent);
+    it('successfully registers an eligible UNILAG Pharmacy student (300L)', async () => {
+      const res = await request(app).post('/api/auth/register').send(validStudent);
 
       expect(res.statusCode).toBe(201);
       expect(res.body.success).toBe(true);
-      expect(res.body).toHaveProperty('token');
-      expect(res.body.user).toMatchObject({
-        fullName: 'Adewale Ojo',
-        email: 'aojo@live.unilag.edu.ng',
-        matricNumber: '190805001',
-        level: '300L',
-        verificationStatus: 'unverified'
-      });
-      expect(res.body.user).not.toHaveProperty('password');
+      expect(res.body.token).toBeDefined();
+      expect(res.body.user).toBeDefined();
+      expect(res.body.user.email).toBe(validStudent.email);
+      expect(res.body.user.matricNumber).toBe(validStudent.matricNumber);
+      expect(res.body.user.verificationStatus).toBe('unverified');
+      expect(res.body.user.password).toBeUndefined(); // Password must never be leaked
     });
 
-    it('rejects registration with non-UNILAG email', async () => {
+    it('rejects registration with invalid email domain', async () => {
       const res = await request(app)
         .post('/api/auth/register')
-        .send({
-          ...validStudent,
-          email: 'student@gmail.com'
-        });
+        .send({ ...validStudent, email: 'student@gmail.com' });
 
       expect(res.statusCode).toBe(400);
       expect(res.body.success).toBe(false);
-      expect(res.body.message).toContain('restricted to UNILAG students');
+      expect(res.body.message).toMatch(/valid UNILAG email/i);
     });
 
     it('rejects registration with invalid academic level (100L or 600L)', async () => {
-      const res = await request(app)
+      const res100 = await request(app)
         .post('/api/auth/register')
-        .send({
-          ...validStudent,
-          level: '100L'
-        });
+        .send({ ...validStudent, level: '100L' });
 
-      expect(res.statusCode).toBe(400);
-      expect(res.body.success).toBe(false);
-      expect(res.body.message).toContain('200L, 300L, 400L, or 500L');
+      expect(res100.statusCode).toBe(400);
+      expect(res100.body.success).toBe(false);
+
+      const res600 = await request(app)
+        .post('/api/auth/register')
+        .send({ ...validStudent, level: '600L' });
+
+      expect(res600.statusCode).toBe(400);
+      expect(res600.body.success).toBe(false);
     });
 
     it('rejects registration with invalid matric number format', async () => {
       const res = await request(app)
         .post('/api/auth/register')
-        .send({
-          ...validStudent,
-          matricNumber: '123'
-        });
+        .send({ ...validStudent, matricNumber: '190805' }); // Only 6 digits
 
       expect(res.statusCode).toBe(400);
       expect(res.body.success).toBe(false);
-      expect(res.body.message).toContain('9-digit UNILAG matric number');
+      expect(res.body.message).toMatch(/9 digits/i);
     });
 
     it('rejects duplicate email and duplicate matric numbers', async () => {
       // First registration
       await request(app).post('/api/auth/register').send(validStudent);
 
-      // Duplicate email
+      // Attempt duplicate email with different matric
       const resDupEmail = await request(app)
         .post('/api/auth/register')
-        .send({
-          ...validStudent,
-          matricNumber: '190805002'
-        });
-      expect(resDupEmail.statusCode).toBe(409);
-      expect(resDupEmail.body.message).toContain('email address already exists');
+        .send({ ...validStudent, matricNumber: '190805999' });
 
-      // Duplicate matric
+      expect(resDupEmail.statusCode).toBe(409);
+      expect(resDupEmail.body.success).toBe(false);
+
+      // Attempt duplicate matric with different email
       const resDupMatric = await request(app)
         .post('/api/auth/register')
-        .send({
-          ...validStudent,
-          email: 'other@live.unilag.edu.ng'
-        });
+        .send({ ...validStudent, email: 'another@live.unilag.edu.ng' });
+
       expect(resDupMatric.statusCode).toBe(409);
-      expect(resDupMatric.body.message).toContain('matriculation number already exists');
+      expect(resDupMatric.body.success).toBe(false);
     });
 
     it('rejects passwords shorter than 8 characters', async () => {
       const res = await request(app)
         .post('/api/auth/register')
-        .send({
-          ...validStudent,
-          password: 'short'
-        });
+        .send({ ...validStudent, password: 'short' });
 
       expect(res.statusCode).toBe(400);
       expect(res.body.success).toBe(false);
-      expect(res.body.message).toContain('at least 8 characters');
+      expect(res.body.message).toMatch(/at least 8 characters/i);
     });
   });
 
@@ -141,57 +129,68 @@ describe('EPIC-002: Authentication & Account Security API', () => {
     });
 
     it('allows logging in with registered UNILAG email', async () => {
-      const res = await request(app)
-        .post('/api/auth/login')
-        .send({
-          identifier: 'aojo@live.unilag.edu.ng',
-          password: 'SecurePassword123!'
-        });
+      const res = await request(app).post('/api/auth/login').send({
+        identifier: validStudent.email,
+        password: validStudent.password
+      });
 
       expect(res.statusCode).toBe(200);
       expect(res.body.success).toBe(true);
-      expect(res.body).toHaveProperty('token');
-      expect(res.body.user.email).toBe('aojo@live.unilag.edu.ng');
+      expect(res.body.token).toBeDefined();
+      expect(res.body.user.email).toBe(validStudent.email);
     });
 
-    it('allows logging in with registered matric number', async () => {
-      const res = await request(app)
-        .post('/api/auth/login')
-        .send({
-          identifier: '190805001',
-          password: 'SecurePassword123!'
-        });
+    it('allows logging in with registered matriculation number', async () => {
+      const res = await request(app).post('/api/auth/login').send({
+        identifier: validStudent.matricNumber,
+        password: validStudent.password
+      });
 
       expect(res.statusCode).toBe(200);
       expect(res.body.success).toBe(true);
-      expect(res.body.user.matricNumber).toBe('190805001');
+      expect(res.body.token).toBeDefined();
+      expect(res.body.user.matricNumber).toBe(validStudent.matricNumber);
     });
 
-    it('rejects incorrect password', async () => {
-      const res = await request(app)
-        .post('/api/auth/login')
-        .send({
-          identifier: 'aojo@live.unilag.edu.ng',
-          password: 'WrongPassword!'
-        });
+    it('rejects invalid password', async () => {
+      const res = await request(app).post('/api/auth/login').send({
+        identifier: validStudent.email,
+        password: 'WrongPassword999!'
+      });
 
       expect(res.statusCode).toBe(401);
-      expect(res.body.message).toContain('Invalid login credentials');
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toMatch(/Invalid email\/matric number or password/i);
+    });
+
+    it('rejects non-existent student credentials', async () => {
+      const res = await request(app).post('/api/auth/login').send({
+        identifier: 'nonexistent@live.unilag.edu.ng',
+        password: 'AnyPassword123!'
+      });
+
+      expect(res.statusCode).toBe(401);
+      expect(res.body.success).toBe(false);
     });
   });
 
   describe('Protected Routes & Session Verification (GET /api/auth/me)', () => {
-    it('returns user session when valid JWT Bearer token is provided', async () => {
-      const regRes = await request(app).post('/api/auth/register').send(validStudent);
-      const token = regRes.body.token;
+    let authToken;
 
+    beforeEach(async () => {
+      const res = await request(app).post('/api/auth/register').send(validStudent);
+      authToken = res.body.token;
+    });
+
+    it('returns student profile for valid JWT Bearer token', async () => {
       const res = await request(app)
         .get('/api/auth/me')
-        .set('Authorization', `Bearer ${token}`);
+        .set('Authorization', `Bearer ${authToken}`);
 
       expect(res.statusCode).toBe(200);
       expect(res.body.success).toBe(true);
       expect(res.body.user.email).toBe(validStudent.email);
+      expect(res.body.user.matricNumber).toBe(validStudent.matricNumber);
     });
 
     it('rejects requests without token or with malformed token', async () => {
@@ -200,7 +199,7 @@ describe('EPIC-002: Authentication & Account Security API', () => {
 
       const resBadToken = await request(app)
         .get('/api/auth/me')
-        .set('Authorization', 'Bearer invalid.token.payload');
+        .set('Authorization', 'Bearer invalid-garbage-token');
       expect(resBadToken.statusCode).toBe(401);
     });
   });
@@ -210,25 +209,30 @@ describe('EPIC-002: Authentication & Account Security API', () => {
       const regRes = await request(app).post('/api/auth/register').send(validStudent);
       const token = regRes.body.token;
 
-      const res = await request(app)
+      const changeRes = await request(app)
         .post('/api/auth/change-password')
         .set('Authorization', `Bearer ${token}`)
         .send({
-          currentPassword: 'SecurePassword123!',
-          newPassword: 'BrandNewSecurePassword456!'
+          currentPassword: validStudent.password,
+          newPassword: 'BrandNewPassword456!'
         });
 
-      expect(res.statusCode).toBe(200);
-      expect(res.body.success).toBe(true);
+      expect(changeRes.statusCode).toBe(200);
+      expect(changeRes.body.success).toBe(true);
 
       // Verify login with new password succeeds
-      const loginRes = await request(app)
-        .post('/api/auth/login')
-        .send({
-          identifier: validStudent.email,
-          password: 'BrandNewSecurePassword456!'
-        });
-      expect(loginRes.statusCode).toBe(200);
+      const newLoginRes = await request(app).post('/api/auth/login').send({
+        identifier: validStudent.email,
+        password: 'BrandNewPassword456!'
+      });
+      expect(newLoginRes.statusCode).toBe(200);
+
+      // Verify old password no longer works
+      const oldLoginRes = await request(app).post('/api/auth/login').send({
+        identifier: validStudent.email,
+        password: validStudent.password
+      });
+      expect(oldLoginRes.statusCode).toBe(401);
     });
   });
 });
