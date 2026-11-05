@@ -21,7 +21,10 @@ import {
   createPost,
   updatePost,
   deletePost,
-  togglePinPost
+  togglePinPost,
+  fetchComments,
+  createComment,
+  deleteComment
 } from '../api/posts';
 
 const CATEGORIES = [
@@ -77,6 +80,13 @@ export default function FeedSection({ user, token }) {
   const [editingPost, setEditingPost] = useState(null);
   const [editContent, setEditContent] = useState('');
   const [savingEdit, setSavingEdit] = useState(false);
+
+  // Discussion & Comments state (EPIC-008)
+  const [expandedComments, setExpandedComments] = useState({});
+  const [commentsByPost, setCommentsByPost] = useState({});
+  const [loadingComments, setLoadingComments] = useState({});
+  const [commentInputs, setCommentInputs] = useState({});
+  const [submittingComment, setSubmittingComment] = useState({});
 
   const isVerified = user?.verificationStatus === 'verified';
   const canPin = user && ['admin', 'moderator', 'pans_exec'].includes(user.role);
@@ -202,6 +212,75 @@ export default function FeedSection({ user, token }) {
       setError(err.message);
     } finally {
       setSavingEdit(false);
+    }
+  };
+
+  // Discussion & Comments handlers (EPIC-008)
+  const handleToggleComments = async (postId) => {
+    const isCurrentlyOpen = !!expandedComments[postId];
+    setExpandedComments((prev) => ({ ...prev, [postId]: !isCurrentlyOpen }));
+
+    if (!isCurrentlyOpen && !commentsByPost[postId]) {
+      try {
+        setLoadingComments((prev) => ({ ...prev, [postId]: true }));
+        const data = await fetchComments(token, postId);
+        setCommentsByPost((prev) => ({ ...prev, [postId]: data.comments || [] }));
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoadingComments((prev) => ({ ...prev, [postId]: false }));
+      }
+    }
+  };
+
+  const handleAddComment = async (postId, e) => {
+    e.preventDefault();
+    const content = (commentInputs[postId] || '').trim();
+    if (!content) return;
+
+    try {
+      setSubmittingComment((prev) => ({ ...prev, [postId]: true }));
+      setError(null);
+      const res = await createComment(token, postId, { content });
+
+      // Append to comments list
+      setCommentsByPost((prev) => ({
+        ...prev,
+        [postId]: [...(prev[postId] || []), res.comment]
+      }));
+
+      // Increment repliesCount on the post
+      setPosts((prev) =>
+        prev.map((p) => (p._id === postId ? { ...p, repliesCount: (p.repliesCount || 0) + 1 } : p))
+      );
+
+      // Clear input
+      setCommentInputs((prev) => ({ ...prev, [postId]: '' }));
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSubmittingComment((prev) => ({ ...prev, [postId]: false }));
+    }
+  };
+
+  const handleDeleteComment = async (postId, commentId) => {
+    if (!window.confirm('Are you sure you want to delete this reply?')) return;
+    try {
+      await deleteComment(token, postId, commentId);
+      // Mark as deleted in local state
+      setCommentsByPost((prev) => ({
+        ...prev,
+        [postId]: (prev[postId] || []).map((c) =>
+          c._id === commentId ? { ...c, isDeleted: true, content: '[This comment was deleted]' } : c
+        )
+      }));
+      setPosts((prev) =>
+        prev.map((p) =>
+          p._id === postId ? { ...p, repliesCount: Math.max(0, (p.repliesCount || 1) - 1) } : p
+        )
+      );
+    } catch (err) {
+      setError(err.message);
     }
   };
 
@@ -685,9 +764,28 @@ export default function FeedSection({ user, token }) {
                 <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <Heart size={14} /> {post.likesCount || 0}
                 </span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+
+                {/* Clickable replies toggle button */}
+                <button
+                  onClick={() => handleToggleComments(post._id)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: expandedComments[post._id] ? 'var(--primary)' : 'var(--text-muted)',
+                    fontWeight: expandedComments[post._id] ? 600 : 400,
+                    fontSize: '12px',
+                    padding: '2px 4px',
+                    borderRadius: '4px'
+                  }}
+                  data-testid={`toggle-comments-${post._id}`}
+                >
                   <MessageSquare size={14} /> {post.repliesCount || 0} replies
-                </span>
+                </button>
+
                 <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <Share2 size={14} /> {post.reLinksCount || 0}
                 </span>
@@ -695,6 +793,125 @@ export default function FeedSection({ user, token }) {
                   <Eye size={13} /> {post.viewsCount || 0} views
                 </span>
               </div>
+
+              {/* Threaded Comments & Discussions Section (EPIC-008) */}
+              {expandedComments[post._id] && (
+                <div
+                  style={{
+                    marginTop: '12px',
+                    paddingTop: '12px',
+                    borderTop: '1px solid #f1f5f9'
+                  }}
+                  data-testid={`comments-section-${post._id}`}
+                >
+                  <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-main)', marginBottom: '8px' }}>
+                    Discussions & Peer Answers
+                  </div>
+
+                  {loadingComments[post._id] ? (
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', padding: '8px 0' }} data-testid={`comments-loading-${post._id}`}>
+                      Loading replies...
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
+                      {(!commentsByPost[post._id] || commentsByPost[post._id].length === 0) ? (
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontStyle: 'italic', padding: '4px 0' }}>
+                          No comments yet. Start the conversation!
+                        </div>
+                      ) : (
+                        commentsByPost[post._id].map((comment) => (
+                          <div
+                            key={comment._id}
+                            style={{
+                              background: '#f8fafc',
+                              border: '1px solid #e2e8f0',
+                              borderRadius: '6px',
+                              padding: '8px 12px',
+                              fontSize: '12px'
+                            }}
+                            data-testid={`comment-card-${comment._id}`}
+                          >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>
+                                  {comment.author?.fullName || (comment.isDeleted ? 'Deleted User' : 'Unknown')}
+                                </span>
+                                {comment.author?.verificationStatus === 'verified' && (
+                                  <CheckCircle2 size={11} color="var(--success)" />
+                                )}
+                                {comment.author?.level && (
+                                  <span style={{ fontSize: '9px', background: '#e0e7ff', color: '#3730a3', padding: '1px 4px', borderRadius: '4px' }}>
+                                    {comment.author.level}
+                                  </span>
+                                )}
+                                <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                                  {formatDate(comment.createdAt)}
+                                </span>
+                                {comment.isEdited && (
+                                  <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                                    (edited)
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* Delete button if authorized and not already deleted */}
+                              {!comment.isDeleted && (comment.isAuthor || (comment.author && comment.author._id === user?._id) || user?.role === 'admin' || user?.role === 'moderator') && (
+                                <button
+                                  onClick={() => handleDeleteComment(post._id, comment._id)}
+                                  title="Delete reply"
+                                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', padding: '2px' }}
+                                  data-testid={`delete-comment-${comment._id}`}
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              )}
+                            </div>
+
+                            <div style={{ color: comment.isDeleted ? 'var(--text-muted)' : 'var(--text-main)', fontStyle: comment.isDeleted ? 'italic' : 'normal' }}>
+                              {comment.content}
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+
+                  {/* Add comment form */}
+                  {isVerified ? (
+                    <form onSubmit={(e) => handleAddComment(post._id, e)} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <input
+                        type="text"
+                        placeholder="Write a comment or academic answer..."
+                        value={commentInputs[post._id] || ''}
+                        onChange={(e) => setCommentInputs({ ...commentInputs, [post._id]: e.target.value })}
+                        style={{
+                          flex: 1,
+                          padding: '6px 10px',
+                          fontSize: '12px',
+                          borderRadius: '4px',
+                          border: '1px solid var(--border)'
+                        }}
+                        data-testid={`comment-input-${post._id}`}
+                      />
+                      <button
+                        type="submit"
+                        disabled={submittingComment[post._id] || !(commentInputs[post._id] || '').trim()}
+                        className="submit-button"
+                        style={{ padding: '6px 12px', margin: 0, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px' }}
+                        data-testid={`submit-comment-btn-${post._id}`}
+                      >
+                        <Send size={12} />
+                        {submittingComment[post._id] ? 'Posting...' : 'Reply (+2 pts)'}
+                      </button>
+                    </form>
+                  ) : (
+                    <div style={{ fontSize: '11px', color: '#b45309', background: '#fffbeb', padding: '6px 10px', borderRadius: '4px' }} data-testid={`comment-unverified-prompt-${post._id}`}>
+                      <ShieldCheck size={12} style={{ display: 'inline', marginRight: '4px', verticalAlign: 'middle' }} />
+                      Verified students only can participate in discussions.
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           ))}
         </div>

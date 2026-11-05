@@ -87,3 +87,42 @@ export async function togglePinPost(token, id) {
   }
   return data;
 }
+
+export async function fetchComments(token, postId) {
+  const res = await fetch(`${API_BASE}/posts/${postId}/comments`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.message || 'Failed to fetch comments');
+  }
+  return data;
+}
+
+export async function createComment(token, postId, commentData) {
+  const res = await fetch(`${API_BASE}/posts/${postId}/comments`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(commentData)
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.message || 'Failed to post comment');
+  }
+  return data;
+}
+
+export async function deleteComment(token, postId, commentId) {
+  const res = await fetch(`${API_BASE}/posts/${postId}/comments/${commentId}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.message || 'Failed to delete comment');
+  }
+  return data;
+}
