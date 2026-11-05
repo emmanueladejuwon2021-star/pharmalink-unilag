@@ -6,6 +6,9 @@
 // Eligible student academic levels in UNILAG Faculty of Pharmacy
 const ELIGIBLE_LEVELS = ['200L', '300L', '400L', '500L'];
 
+// Target audience levels for discussion posts
+const POST_AUDIENCE_LEVELS = ['All Levels', '200L', '300L', '400L', '500L'];
+
 // System roles
 const USER_ROLES = {
   STUDENT: 'student',
@@ -22,6 +25,19 @@ const VERIFICATION_STATUS = {
   VERIFIED: 'verified',
   REJECTED: 'rejected'
 };
+
+// Discussion Post Categories (EPIC-006 & EPIC-007)
+const POST_CATEGORIES = [
+  'Academic Discussion',
+  'Exam Preparation',
+  'Lab & Practical',
+  'General Announcement',
+  'PANS Official',
+  'Student Life'
+];
+
+// Feed Sort Options
+const FEED_SORT_OPTIONS = ['latest', 'popular'];
 
 // Materials Vault categories
 const MATERIAL_CATEGORIES = [
@@ -75,8 +91,11 @@ const SEMESTERS = ['First Semester', 'Second Semester'];
 
 module.exports = {
   ELIGIBLE_LEVELS,
+  POST_AUDIENCE_LEVELS,
   USER_ROLES,
   VERIFICATION_STATUS,
+  POST_CATEGORIES,
+  FEED_SORT_OPTIONS,
   MATERIAL_CATEGORIES,
   VERIFICATION_DOC_TYPES,
   DEPARTMENTS,

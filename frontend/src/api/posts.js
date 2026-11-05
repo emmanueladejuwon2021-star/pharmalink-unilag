@@ -1,0 +1,89 @@
+const API_BASE = '/api';
+
+export async function fetchFeed(token, filters = {}) {
+  const params = new URLSearchParams();
+  Object.entries(filters).forEach(([key, val]) => {
+    if (val && val !== 'all' && val !== 'All Levels') {
+      params.append(key, val);
+    }
+  });
+
+  const queryStr = params.toString();
+  const url = `${API_BASE}/posts${queryStr ? `?${queryStr}` : ''}`;
+
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.message || 'Failed to fetch social feed');
+  }
+  return data;
+}
+
+export async function fetchPostById(token, id) {
+  const res = await fetch(`${API_BASE}/posts/${id}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.message || 'Failed to fetch post');
+  }
+  return data;
+}
+
+export async function createPost(token, postData) {
+  const res = await fetch(`${API_BASE}/posts`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(postData)
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.message || 'Failed to create post');
+  }
+  return data;
+}
+
+export async function updatePost(token, id, updateData) {
+  const res = await fetch(`${API_BASE}/posts/${id}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(updateData)
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.message || 'Failed to update post');
+  }
+  return data;
+}
+
+export async function deletePost(token, id) {
+  const res = await fetch(`${API_BASE}/posts/${id}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.message || 'Failed to delete post');
+  }
+  return data;
+}
+
+export async function togglePinPost(token, id) {
+  const res = await fetch(`${API_BASE}/posts/${id}/pin`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.message || 'Failed to toggle pin');
+  }
+  return data;
+}

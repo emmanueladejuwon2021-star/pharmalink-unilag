@@ -15,6 +15,7 @@ import AuthModal from './components/AuthModal';
 import VerificationSection from './components/VerificationSection';
 import AcademicSection from './components/AcademicSection';
 import ProfileSection from './components/ProfileSection';
+import FeedSection from './components/FeedSection';
 
 export default function App() {
   const [health, setHealth] = useState({
@@ -244,9 +245,14 @@ export default function App() {
                 />
               )}
 
-              {/* Feed & Default Dashboard View */}
+              {/* Feed & Default Dashboard View (EPIC-006 & EPIC-007) */}
               {activeView === 'feed' && (
                 <div>
+                  <FeedSection
+                    user={user}
+                    token={token}
+                  />
+
                   <VerificationSection
                     user={user}
                     token={token}
@@ -273,6 +279,13 @@ export default function App() {
 
                     <div className="feature-grid">
                       <div className="feature-box">
+                        <h4>Social Feed & Discussions (EPIC-006 & 007)</h4>
+                        <p>
+                          Join academic discussions, level-specific revision topics, lab reports, and official PANS announcements.
+                        </p>
+                      </div>
+
+                      <div className="feature-box">
                         <h4>User Profile & Directory (EPIC-005)</h4>
                         <p>
                           Manage your academic identity, department affiliation, research interests, and connect with peers across 200L–500L.
@@ -292,11 +305,6 @@ export default function App() {
                           Current status: <strong>{user.verificationStatus.toUpperCase()}</strong>.
                           Submit your UNILAG ID card or signed course form for community privileges.
                         </p>
-                      </div>
-
-                      <div className="feature-box">
-                        <h4>Student Authentication (EPIC-002)</h4>
-                        <p>Secure JWT session active. Passwords salted with bcrypt. Access token securely scoped to your UNILAG identity.</p>
                       </div>
                     </div>
                   </div>

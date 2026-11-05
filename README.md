@@ -36,7 +36,7 @@ MERN stack (MongoDB, Express.js, React, Node.js).
 
 ## Project Status
 
-Foundation groundwork, student authentication, verification, academic structure management, and user profiles & directory have been built and tested.
+Foundation groundwork, student authentication, verification, academic structure management, user profiles & directory, and social feed discussion engine have been built and tested.
 
 ## How to Use This Repository
 
@@ -127,6 +127,14 @@ Verify API status by querying:
 - `GET /api/profile/:id` — Retrieve public profile card of any verified student
 - `GET /api/profile/directory/students` — Faculty Student Directory searchable by name, matric number, level (200L–500L), and department (CPH, PCH, PCT, PCG, PCL)
 
+### Social Feed and Post Management Endpoints (EPIC-006 & EPIC-007)
+- `GET /api/posts` — Retrieve paginated social feed with filtering by target level (200L–500L), department (CPH, PCH, PCT, PCG, PCL), category, course code, hashtag, keyword search, and sorting (latest/popular)
+- `POST /api/posts` — Create a new academic or social discussion post (verified students only; supports title, content, category, level, department, course code, and hashtags)
+- `GET /api/posts/:id` — Retrieve single post details by ID and increments view count
+- `PATCH /api/posts/:id` — Edit an existing post (author or admin only)
+- `DELETE /api/posts/:id` — Delete a post (author or admin/moderator only)
+- `POST /api/posts/:id/pin` — Toggle pinned announcement status (Admin, Moderator, and PANS Executive only)
+
 ## Master Feature Checklist
 
 All features start as **Not Started**. Status must be updated honestly as work progresses (Not Started → In Progress → Implemented → Tested → Verified in Production). A feature is never marked Implemented based on placeholders or mock data.
@@ -137,8 +145,8 @@ All features start as **Not Started**. Status must be updated honestly as work p
 - [x] **EPIC-002** — Authentication and Account Security (Tested)
 - [x] **EPIC-003** — Student Verification System (Tested)
 - [x] **EPIC-004** — Academic Structure and Session Management (Tested)
-- [ ] **EPIC-006** — Social Feed and Content Discovery
-- [ ] **EPIC-007** — Post Creation and Management
+- [x] **EPIC-006** — Social Feed and Content Discovery (Tested)
+- [x] **EPIC-007** — Post Creation and Management (Tested)
 - [ ] **EPIC-008** — Comments and Discussions
 - [ ] **EPIC-011** — Materials Vault
 - [ ] **EPIC-012** — File Storage and Document Processing

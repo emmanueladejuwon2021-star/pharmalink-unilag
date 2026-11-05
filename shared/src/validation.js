@@ -4,6 +4,8 @@
 
 const {
   ELIGIBLE_LEVELS,
+  POST_AUDIENCE_LEVELS,
+  POST_CATEGORIES,
   USER_ROLES,
   VERIFICATION_DOC_TYPES,
   DEPARTMENTS,
@@ -34,6 +36,22 @@ function isValidMatricNumber(matric) {
  */
 function isValidLevel(level) {
   return ELIGIBLE_LEVELS.includes(level);
+}
+
+/**
+ * Validate target audience level for posts
+ */
+function isValidPostTargetLevel(level) {
+  if (!level || typeof level !== 'string') return false;
+  return POST_AUDIENCE_LEVELS.includes(level.trim());
+}
+
+/**
+ * Validate post category
+ */
+function isValidPostCategory(category) {
+  if (!category || typeof category !== 'string') return false;
+  return POST_CATEGORIES.includes(category.trim());
 }
 
 /**
@@ -78,6 +96,8 @@ module.exports = {
   isValidUnilagEmail,
   isValidMatricNumber,
   isValidLevel,
+  isValidPostTargetLevel,
+  isValidPostCategory,
   isValidVerificationDocType,
   isValidDepartmentCode,
   isValidSemester,

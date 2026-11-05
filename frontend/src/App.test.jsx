@@ -65,6 +65,61 @@ const mockPeerStudents = [
   }
 ];
 
+const mockPosts = [
+  {
+    _id: 'p1',
+    title: 'Pharmaceutics Physical Pharmacy Lab Report',
+    content: 'Review colloidal dispersions and emulsion stability before Wednesday practicals! #PCT301',
+    category: 'Lab & Practical',
+    level: '300L',
+    department: 'PCT',
+    courseCode: 'PCT 301',
+    tags: ['pct301', 'pharmaceutics'],
+    isPinned: true,
+    likesCount: 14,
+    repliesCount: 3,
+    reLinksCount: 2,
+    viewsCount: 45,
+    isEdited: false,
+    createdAt: new Date().toISOString(),
+    author: {
+      _id: 'u1',
+      fullName: 'Oluwaseun Adeleke',
+      level: '300L',
+      department: 'PCT',
+      verificationStatus: 'verified',
+      role: 'student'
+    },
+    isAuthor: true
+  },
+  {
+    _id: 'p2',
+    title: 'Faculty Mid-Semester Timetable Update',
+    content: 'Official PANS academic committee announcement regarding 400L clinical rotations.',
+    category: 'PANS Official',
+    level: 'All Levels',
+    department: 'CPH',
+    courseCode: null,
+    tags: ['pans', 'updates'],
+    isPinned: false,
+    likesCount: 29,
+    repliesCount: 6,
+    reLinksCount: 5,
+    viewsCount: 88,
+    isEdited: false,
+    createdAt: new Date().toISOString(),
+    author: {
+      _id: 'u2',
+      fullName: 'PANS Academic Director',
+      level: '500L',
+      department: 'CPH',
+      verificationStatus: 'verified',
+      role: 'pans_exec'
+    },
+    isAuthor: false
+  }
+];
+
 function setupGlobalFetch(userOverrides = {}) {
   global.fetch = vi.fn().mockImplementation((url) => {
     if (url.includes('/api/health')) {
@@ -149,6 +204,16 @@ function setupGlobalFetch(userOverrides = {}) {
         json: async () => ({
           success: true,
           students: mockPeerStudents,
+          pagination: { page: 1, limit: 20, total: 2, totalPages: 1 }
+        })
+      });
+    }
+    if (url.includes('/api/posts')) {
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          success: true,
+          posts: mockPosts,
           pagination: { page: 1, limit: 20, total: 2, totalPages: 1 }
         })
       });
@@ -334,6 +399,56 @@ describe('User Profiles and Student Directory (EPIC-005)', () => {
       expect(screen.getByText('Babatunde Fashola')).toBeInTheDocument();
       expect(screen.getByText('Amina Bello')).toBeInTheDocument();
       expect(screen.getByText('Future Clinical Pharmacist')).toBeInTheDocument();
+    });
+  });
+});
+
+describe('Social Feed and Post Management (EPIC-006 & EPIC-007)', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    localStorage.clear();
+    localStorage.setItem('pharmalink_token', 'mock-token');
+  });
+
+  it('renders social feed with pinned posts and post cards', async () => {
+    setupGlobalFetch({ verificationStatus: 'verified' });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('feed-section')).toBeInTheDocument();
+      expect(screen.getByText('Pharmaceutics Physical Pharmacy Lab Report')).toBeInTheDocument();
+      expect(screen.getByText('PINNED ANNOUNCEMENT')).toBeInTheDocument();
+      expect(screen.getByText('Faculty Mid-Semester Timetable Update')).toBeInTheDocument();
+    });
+  });
+
+  it('displays post creator for verified students and opens creator box', async () => {
+    setupGlobalFetch({ verificationStatus: 'verified' });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('create-post-btn')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId('create-post-btn'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('post-creator-box')).toBeInTheDocument();
+      expect(screen.getByTestId('post-content-textarea')).toBeInTheDocument();
+      expect(screen.getByTestId('submit-post-btn')).toBeInTheDocument();
+    });
+  });
+
+  it('displays posting restriction banner when student is unverified', async () => {
+    setupGlobalFetch({ verificationStatus: 'unverified' });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('unverified-feed-banner')).toBeInTheDocument();
+      expect(screen.queryByTestId('create-post-btn')).not.toBeInTheDocument();
     });
   });
 });
