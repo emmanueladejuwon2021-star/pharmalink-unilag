@@ -171,10 +171,13 @@ async function getFeed(req, res, next) {
     } = req.query;
 
     const query = { isDeleted: false };
+    const andConditions = [];
 
     // Target academic level filter
     if (level && level !== 'all' && level !== 'All Levels') {
-      query.$or = [{ level: level }, { level: 'All Levels' }];
+      andConditions.push({
+        $or: [{ level: level }, { level: 'All Levels' }]
+      });
     }
 
     // Department filter
@@ -201,7 +204,13 @@ async function getFeed(req, res, next) {
     // Keyword search in content or title
     if (search && search.trim()) {
       const regex = new RegExp(search.trim(), 'i');
-      query.$or = [{ content: regex }, { title: regex }, { courseCode: regex }];
+      andConditions.push({
+        $or: [{ content: regex }, { title: regex }, { courseCode: regex }]
+      });
+    }
+
+    if (andConditions.length > 0) {
+      query.$and = andConditions;
     }
 
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
@@ -413,7 +422,7 @@ async function deletePost(req, res, next) {
     post.isDeleted = true;
     await post.save();
 
-    // Decrement author post count
+    // Decrement author post count (prevent negative)
     await User.findByIdAndUpdate(post.author, {
       $inc: { 'stats.postsCount': -1 }
     });
