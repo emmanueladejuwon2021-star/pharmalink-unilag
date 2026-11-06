@@ -267,8 +267,8 @@ async function getPostById(req, res, next) {
       });
     }
 
-    // Increment view count asynchronously
-    Post.findByIdAndUpdate(id, { $inc: { viewsCount: 1 } }).exec();
+    // Increment view count asynchronously (fire-and-forget)
+    Post.findByIdAndUpdate(id, { $inc: { viewsCount: 1 } }).exec().catch(() => {});
 
     const currentUserId = req.user ? req.user._id : null;
 
@@ -422,10 +422,16 @@ async function deletePost(req, res, next) {
     post.isDeleted = true;
     await post.save();
 
-    // Decrement author post count (prevent negative)
-    await User.findByIdAndUpdate(post.author, {
-      $inc: { 'stats.postsCount': -1 }
-    });
+    // Safe decrement of author post count and reputation (only if positive)
+    // Awarded +5 reputation and +1 postsCount on create — reverse them without going negative
+    await User.findOneAndUpdate(
+      { _id: post.author, 'stats.postsCount': { $gt: 0 } },
+      { $inc: { 'stats.postsCount': -1 } }
+    );
+    await User.findOneAndUpdate(
+      { _id: post.author, 'stats.reputationPoints': { $gte: 5 } },
+      { $inc: { 'stats.reputationPoints': -5 } }
+    );
 
     return res.status(200).json({
       success: true,

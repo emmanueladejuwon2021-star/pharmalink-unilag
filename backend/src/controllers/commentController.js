@@ -44,7 +44,7 @@ async function createComment(req, res, next) {
 
     let parentComment = null;
     if (parentCommentId) {
-      const parent = await Comment.findOne({ _id: parentCommentId, post: postId });
+      const parent = await Comment.findOne({ _id: parentCommentId, post: postId, isDeleted: false });
       if (!parent) {
         return res.status(404).json({
           success: false,
@@ -63,7 +63,7 @@ async function createComment(req, res, next) {
 
     await comment.save();
 
-    // Increment replies count on post
+    // Increment replies count on post (atomic)
     await Post.findByIdAndUpdate(postId, {
       $inc: { repliesCount: 1 }
     });
@@ -101,6 +101,8 @@ async function getComments(req, res, next) {
       });
     }
 
+    // Include soft-deleted comments so the thread structure is preserved;
+    // toSafeComment will render them as placeholders.
     const comments = await Comment.find({ post: postId })
       .sort({ createdAt: 1 })
       .populate('author', 'fullName level department verificationStatus role avatar');
@@ -207,10 +209,17 @@ async function deleteComment(req, res, next) {
     comment.isDeleted = true;
     await comment.save();
 
-    // Decrement post replies count
-    await Post.findByIdAndUpdate(postId, {
-      $inc: { repliesCount: -1 }
-    });
+    // Safe decrement of post replies count (only if positive)
+    await Post.findOneAndUpdate(
+      { _id: postId, repliesCount: { $gt: 0 } },
+      { $inc: { repliesCount: -1 } }
+    );
+
+    // Reverse the +2 reputation awarded on comment creation (only if sufficient)
+    await User.findOneAndUpdate(
+      { _id: comment.author, 'stats.reputationPoints': { $gte: 2 } },
+      { $inc: { 'stats.reputationPoints': -2 } }
+    );
 
     return res.status(200).json({
       success: true,
