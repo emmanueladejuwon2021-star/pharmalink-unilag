@@ -126,3 +126,63 @@ export async function deleteComment(token, postId, commentId) {
   }
   return data;
 }
+
+// Social Engagement (EPIC-009)
+export async function toggleLikePost(token, id) {
+  const res = await fetch(`${API_BASE}/posts/${id}/like`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.message || 'Failed to toggle like');
+  }
+  return data;
+}
+
+export async function toggleLikeComment(token, postId, commentId) {
+  const res = await fetch(`${API_BASE}/posts/${postId}/comments/${commentId}/like`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.message || 'Failed to toggle comment like');
+  }
+  return data;
+}
+
+export async function toggleReLinkPost(token, id) {
+  const res = await fetch(`${API_BASE}/posts/${id}/relink`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.message || 'Failed to toggle re-link');
+  }
+  return data;
+}
+
+export async function toggleBookmarkPost(token, id) {
+  const res = await fetch(`${API_BASE}/posts/${id}/bookmark`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.message || 'Failed to toggle bookmark');
+  }
+  return data;
+}
+
+export async function fetchBookmarks(token) {
+  const res = await fetch(`${API_BASE}/bookmarks`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.message || 'Failed to fetch bookmarks');
+  }
+  return data;
+}

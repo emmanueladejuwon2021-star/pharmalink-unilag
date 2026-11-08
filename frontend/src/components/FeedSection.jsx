@@ -12,6 +12,7 @@ import {
   Eye,
   Heart,
   Share2,
+  Bookmark,
   Hash,
   ShieldCheck,
   Award
@@ -24,7 +25,12 @@ import {
   togglePinPost,
   fetchComments,
   createComment,
-  deleteComment
+  deleteComment,
+  toggleLikePost,
+  toggleLikeComment,
+  toggleReLinkPost,
+  toggleBookmarkPost,
+  fetchBookmarks
 } from '../api/posts';
 
 const CATEGORIES = [
@@ -53,6 +59,7 @@ export default function FeedSection({ user, token }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [successMsg, setSuccessMsg] = useState(null);
+  const [activeView, setActiveView] = useState('feed'); // 'feed' | 'bookmarks'
 
   // Filter state
   const [selectedLevel, setSelectedLevel] = useState('All Levels');
@@ -95,15 +102,24 @@ export default function FeedSection({ user, token }) {
     try {
       setLoading(true);
       setError(null);
-      const data = await fetchFeed(token, {
-        level: selectedLevel !== 'All Levels' ? selectedLevel : undefined,
-        category: selectedCategory !== 'All' ? selectedCategory : undefined,
-        department: selectedDept !== 'all' ? selectedDept : undefined,
-        search: searchQuery.trim() || undefined,
-        tag: activeTag || undefined,
-        sort: sortBy
-      });
-      setPosts(data.posts || []);
+      if (activeView === 'bookmarks') {
+        const data = await fetchBookmarks(token);
+        const bookmarkedPosts = (data.bookmarks || []).map((b) => ({
+          ...b.post,
+          hasBookmarked: true
+        }));
+        setPosts(bookmarkedPosts);
+      } else {
+        const data = await fetchFeed(token, {
+          level: selectedLevel !== 'All Levels' ? selectedLevel : undefined,
+          category: selectedCategory !== 'All' ? selectedCategory : undefined,
+          department: selectedDept !== 'all' ? selectedDept : undefined,
+          search: searchQuery.trim() || undefined,
+          tag: activeTag || undefined,
+          sort: sortBy
+        });
+        setPosts(data.posts || []);
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -115,7 +131,7 @@ export default function FeedSection({ user, token }) {
     if (token) {
       loadFeed();
     }
-  }, [token, selectedLevel, selectedCategory, selectedDept, activeTag, sortBy]);
+  }, [token, activeView, selectedLevel, selectedCategory, selectedDept, activeTag, sortBy]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -215,6 +231,74 @@ export default function FeedSection({ user, token }) {
     }
   };
 
+  // Engagement handlers (EPIC-009)
+  const handleToggleLike = async (postId) => {
+    if (!isVerified) {
+      setError('Student verification required to like posts.');
+      return;
+    }
+    try {
+      const res = await toggleLikePost(token, postId);
+      setPosts((prev) =>
+        prev.map((p) =>
+          p._id === postId ? { ...p, hasLiked: res.liked, likesCount: res.likesCount } : p
+        )
+      );
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleToggleReLink = async (postId) => {
+    if (!isVerified) {
+      setError('Student verification required to re-link posts.');
+      return;
+    }
+    try {
+      const res = await toggleReLinkPost(token, postId);
+      setPosts((prev) =>
+        prev.map((p) =>
+          p._id === postId ? { ...p, hasReLinked: res.relinked, reLinksCount: res.reLinksCount } : p
+        )
+      );
+      setSuccessMsg(res.message);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleToggleBookmark = async (postId) => {
+    try {
+      const res = await toggleBookmarkPost(token, postId);
+      setPosts((prev) =>
+        prev.map((p) =>
+          p._id === postId ? { ...p, hasBookmarked: res.bookmarked } : p
+        )
+      );
+      setSuccessMsg(res.message);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleToggleCommentLike = async (postId, commentId) => {
+    if (!isVerified) {
+      setError('Student verification required to like comments.');
+      return;
+    }
+    try {
+      const res = await toggleLikeComment(token, postId, commentId);
+      setCommentsByPost((prev) => ({
+        ...prev,
+        [postId]: (prev[postId] || []).map((c) =>
+          c._id === commentId ? { ...c, hasLiked: res.liked, likesCount: res.likesCount } : c
+        )
+      }));
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   // Discussion & Comments handlers (EPIC-008)
   const handleToggleComments = async (postId) => {
     const isCurrentlyOpen = !!expandedComments[postId];
@@ -243,18 +327,15 @@ export default function FeedSection({ user, token }) {
       setError(null);
       const res = await createComment(token, postId, { content });
 
-      // Append to comments list
       setCommentsByPost((prev) => ({
         ...prev,
         [postId]: [...(prev[postId] || []), res.comment]
       }));
 
-      // Increment repliesCount on the post
       setPosts((prev) =>
         prev.map((p) => (p._id === postId ? { ...p, repliesCount: (p.repliesCount || 0) + 1 } : p))
       );
 
-      // Clear input
       setCommentInputs((prev) => ({ ...prev, [postId]: '' }));
     } catch (err) {
       setError(err.message);
@@ -267,7 +348,6 @@ export default function FeedSection({ user, token }) {
     if (!window.confirm('Are you sure you want to delete this reply?')) return;
     try {
       await deleteComment(token, postId, commentId);
-      // Mark as deleted in local state
       setCommentsByPost((prev) => ({
         ...prev,
         [postId]: (prev[postId] || []).map((c) =>
@@ -312,24 +392,66 @@ export default function FeedSection({ user, token }) {
         <div>
           <h2 className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <MessageSquare size={20} color="var(--primary)" />
-            Social Feed & Academic Discussions (EPIC-006 & EPIC-007)
+            Social Feed & Academic Discussions
           </h2>
           <p className="card-subtitle" style={{ marginBottom: 0 }}>
             Real-time peer discussions, course guides, exam tips, and official announcements across UNILAG Pharmacy.
           </p>
         </div>
 
-        {isVerified && (
-          <button
-            onClick={() => setCreatorOpen(!creatorOpen)}
-            className="submit-button"
-            style={{ padding: '8px 16px', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}
-            data-testid="create-post-btn"
-          >
-            <Send size={14} />
-            {creatorOpen ? 'Close Creator' : 'Create Post'}
-          </button>
-        )}
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          {/* Feed view switcher */}
+          <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: '6px', padding: '2px' }}>
+            <button
+              onClick={() => setActiveView('feed')}
+              style={{
+                background: activeView === 'feed' ? '#fff' : 'none',
+                border: 'none',
+                padding: '6px 12px',
+                borderRadius: '4px',
+                fontSize: '11px',
+                fontWeight: activeView === 'feed' ? 600 : 400,
+                cursor: 'pointer',
+                color: activeView === 'feed' ? 'var(--primary)' : 'var(--text-muted)'
+              }}
+              data-testid="tab-all-posts"
+            >
+              All Posts
+            </button>
+            <button
+              onClick={() => setActiveView('bookmarks')}
+              style={{
+                background: activeView === 'bookmarks' ? '#fff' : 'none',
+                border: 'none',
+                padding: '6px 12px',
+                borderRadius: '4px',
+                fontSize: '11px',
+                fontWeight: activeView === 'bookmarks' ? 600 : 400,
+                cursor: 'pointer',
+                color: activeView === 'bookmarks' ? 'var(--primary)' : 'var(--text-muted)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+              data-testid="tab-bookmarks"
+            >
+              <Bookmark size={12} />
+              Bookmarks
+            </button>
+          </div>
+
+          {isVerified && activeView === 'feed' && (
+            <button
+              onClick={() => setCreatorOpen(!creatorOpen)}
+              className="submit-button"
+              style={{ padding: '8px 16px', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}
+              data-testid="create-post-btn"
+            >
+              <Send size={14} />
+              {creatorOpen ? 'Close Creator' : 'Create Post'}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Messages */}
@@ -352,10 +474,10 @@ export default function FeedSection({ user, token }) {
         <div className="notice-box" style={{ background: '#fffbeb', borderLeftColor: '#f59e0b', marginBottom: '16px' }} data-testid="unverified-feed-banner">
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#b45309' }}>
             <ShieldCheck size={18} />
-            <strong>Posting Restricted to Verified Pharmacy Students</strong>
+            <strong>Posting & Interaction Restricted to Verified Pharmacy Students</strong>
           </div>
           <p style={{ fontSize: '12px', marginTop: '4px', color: '#78350f' }}>
-            Your account is currently <strong>{user?.verificationStatus?.toUpperCase() || 'UNVERIFIED'}</strong>. You can browse public faculty discussions, but must submit your UNILAG ID card in the <strong>Student Verification</strong> tab to publish posts.
+            Your account is currently <strong>{user?.verificationStatus?.toUpperCase() || 'UNVERIFIED'}</strong>. You can browse public faculty discussions, but must submit your UNILAG ID card in the <strong>Student Verification</strong> tab to publish posts, reply, or like discussions.
           </p>
         </div>
       )}
@@ -506,91 +628,93 @@ export default function FeedSection({ user, token }) {
         </div>
       )}
 
-      {/* Feed Filters & Search Toolbar */}
-      <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid var(--border)', marginBottom: '16px' }} data-testid="feed-filters-toolbar">
-        {/* Search bar */}
-        <form onSubmit={handleSearchSubmit} style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
-          <div style={{ position: 'relative', flex: 1 }}>
-            <Search size={14} style={{ position: 'absolute', left: '8px', top: '9px', color: 'var(--text-muted)' }} />
-            <input
-              type="text"
-              placeholder="Search feed by keywords, topics, or course codes..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              style={{ width: '100%', padding: '6px 8px 6px 28px', borderRadius: '4px', border: '1px solid var(--border)', fontSize: '12px' }}
-              data-testid="feed-search-input"
-            />
-          </div>
-          <button
-            type="submit"
-            className="submit-button"
-            style={{ padding: '6px 14px', margin: 0, fontSize: '12px' }}
-            data-testid="feed-search-btn"
-          >
-            Search
-          </button>
-          {activeTag && (
+      {/* Feed Filters & Search Toolbar (Only visible on full feed view) */}
+      {activeView === 'feed' && (
+        <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid var(--border)', marginBottom: '16px' }} data-testid="feed-filters-toolbar">
+          {/* Search bar */}
+          <form onSubmit={handleSearchSubmit} style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
+            <div style={{ position: 'relative', flex: 1 }}>
+              <Search size={14} style={{ position: 'absolute', left: '8px', top: '9px', color: 'var(--text-muted)' }} />
+              <input
+                type="text"
+                placeholder="Search feed by keywords, topics, or course codes..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{ width: '100%', padding: '6px 8px 6px 28px', borderRadius: '4px', border: '1px solid var(--border)', fontSize: '12px' }}
+                data-testid="feed-search-input"
+              />
+            </div>
             <button
-              type="button"
-              onClick={() => setActiveTag('')}
-              style={{ padding: '6px 10px', fontSize: '11px', background: '#e0e7ff', color: '#3730a3', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+              type="submit"
+              className="submit-button"
+              style={{ padding: '6px 14px', margin: 0, fontSize: '12px' }}
+              data-testid="feed-search-btn"
             >
-              #{activeTag} &times;
+              Search
             </button>
-          )}
-        </form>
-
-        {/* Level pills & Department dropdown */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-            {AUDIENCE_LEVELS.map((lvl) => (
+            {activeTag && (
               <button
-                key={lvl}
-                onClick={() => setSelectedLevel(lvl)}
-                className={`auth-tab-btn ${selectedLevel === lvl ? 'active' : ''}`}
-                style={{ padding: '4px 10px', fontSize: '11px' }}
-                data-testid={`filter-level-${lvl}`}
+                type="button"
+                onClick={() => setActiveTag('')}
+                style={{ padding: '6px 10px', fontSize: '11px', background: '#e0e7ff', color: '#3730a3', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
               >
-                {lvl}
+                #{activeTag} &times;
               </button>
-            ))}
-          </div>
+            )}
+          </form>
 
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              style={{ padding: '4px 8px', fontSize: '11px', borderRadius: '4px', border: '1px solid var(--border)' }}
-              data-testid="filter-category-select"
-            >
-              {CATEGORIES.map((c) => (
-                <option key={c} value={c}>{c}</option>
+          {/* Level pills & Department dropdown */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+              {AUDIENCE_LEVELS.map((lvl) => (
+                <button
+                  key={lvl}
+                  onClick={() => setSelectedLevel(lvl)}
+                  className={`auth-tab-btn ${selectedLevel === lvl ? 'active' : ''}`}
+                  style={{ padding: '4px 10px', fontSize: '11px' }}
+                  data-testid={`filter-level-${lvl}`}
+                >
+                  {lvl}
+                </button>
               ))}
-            </select>
+            </div>
 
-            <select
-              value={selectedDept}
-              onChange={(e) => setSelectedDept(e.target.value)}
-              style={{ padding: '4px 8px', fontSize: '11px', borderRadius: '4px', border: '1px solid var(--border)' }}
-              data-testid="filter-dept-select"
-            >
-              {DEPARTMENTS.map((d) => (
-                <option key={d.code} value={d.code}>{d.name}</option>
-              ))}
-            </select>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                style={{ padding: '4px 8px', fontSize: '11px', borderRadius: '4px', border: '1px solid var(--border)' }}
+                data-testid="filter-category-select"
+              >
+                {CATEGORIES.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
 
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              style={{ padding: '4px 8px', fontSize: '11px', borderRadius: '4px', border: '1px solid var(--border)' }}
-              data-testid="sort-by-select"
-            >
-              <option value="latest">Latest</option>
-              <option value="popular">Popular</option>
-            </select>
+              <select
+                value={selectedDept}
+                onChange={(e) => setSelectedDept(e.target.value)}
+                style={{ padding: '4px 8px', fontSize: '11px', borderRadius: '4px', border: '1px solid var(--border)' }}
+                data-testid="filter-dept-select"
+              >
+                {DEPARTMENTS.map((d) => (
+                  <option key={d.code} value={d.code}>{d.name}</option>
+                ))}
+              </select>
+
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                style={{ padding: '4px 8px', fontSize: '11px', borderRadius: '4px', border: '1px solid var(--border)' }}
+                data-testid="sort-by-select"
+              >
+                <option value="latest">Latest</option>
+                <option value="popular">Popular</option>
+              </select>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Feed Post List */}
       {loading ? (
@@ -600,9 +724,13 @@ export default function FeedSection({ user, token }) {
       ) : posts.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '40px', background: '#f8fafc', borderRadius: '8px', border: '1px solid var(--border)' }} data-testid="empty-feed">
           <MessageSquare size={32} color="var(--text-muted)" style={{ margin: '0 auto 10px auto' }} />
-          <h4 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-main)', marginBottom: '4px' }}>No discussions found</h4>
+          <h4 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-main)', marginBottom: '4px' }}>
+            {activeView === 'bookmarks' ? 'No saved bookmarks yet' : 'No discussions found'}
+          </h4>
           <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: 0 }}>
-            No posts match the current filter. Be the first to start an academic discussion!
+            {activeView === 'bookmarks'
+              ? 'Click the bookmark icon on any post to save it for quick reference.'
+              : 'No posts match the current filter. Be the first to start an academic discussion!'}
           </p>
         </div>
       ) : (
@@ -759,11 +887,30 @@ export default function FeedSection({ user, token }) {
                 </div>
               )}
 
-              {/* Engagement Counter Footer */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', borderTop: '1px solid #f1f5f9', paddingTop: '8px', fontSize: '12px', color: 'var(--text-muted)' }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <Heart size={14} /> {post.likesCount || 0}
-                </span>
+              {/* Engagement Interaction Toolbar (EPIC-009) */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px', borderTop: '1px solid #f1f5f9', paddingTop: '8px', fontSize: '12px', color: 'var(--text-muted)', flexWrap: 'wrap' }}>
+                {/* Like Button */}
+                <button
+                  onClick={() => handleToggleLike(post._id)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    background: 'none',
+                    border: 'none',
+                    cursor: isVerified ? 'pointer' : 'not-allowed',
+                    color: post.hasLiked ? '#ef4444' : 'var(--text-muted)',
+                    fontWeight: post.hasLiked ? 600 : 400,
+                    fontSize: '12px',
+                    padding: '2px 4px',
+                    borderRadius: '4px'
+                  }}
+                  data-testid={`like-btn-${post._id}`}
+                  title={isVerified ? (post.hasLiked ? 'Unlike' : 'Like (+1 rep to author)') : 'Verification required to like'}
+                >
+                  <Heart size={14} fill={post.hasLiked ? '#ef4444' : 'none'} color={post.hasLiked ? '#ef4444' : 'currentColor'} />
+                  <span>{post.likesCount || 0}</span>
+                </button>
 
                 {/* Clickable replies toggle button */}
                 <button
@@ -771,7 +918,7 @@ export default function FeedSection({ user, token }) {
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '4px',
+                    gap: '5px',
                     background: 'none',
                     border: 'none',
                     cursor: 'pointer',
@@ -783,18 +930,62 @@ export default function FeedSection({ user, token }) {
                   }}
                   data-testid={`toggle-comments-${post._id}`}
                 >
-                  <MessageSquare size={14} /> {post.repliesCount || 0} replies
+                  <MessageSquare size={14} />
+                  <span>{post.repliesCount || 0} replies</span>
                 </button>
 
-                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <Share2 size={14} /> {post.reLinksCount || 0}
-                </span>
+                {/* Re-Link Button */}
+                <button
+                  onClick={() => handleToggleReLink(post._id)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    background: 'none',
+                    border: 'none',
+                    cursor: isVerified ? 'pointer' : 'not-allowed',
+                    color: post.hasReLinked ? '#10b981' : 'var(--text-muted)',
+                    fontWeight: post.hasReLinked ? 600 : 400,
+                    fontSize: '12px',
+                    padding: '2px 4px',
+                    borderRadius: '4px'
+                  }}
+                  data-testid={`relink-btn-${post._id}`}
+                  title={isVerified ? (post.hasReLinked ? 'Undo Re-Link' : 'Re-Link to Network (+1 rep)') : 'Verification required to re-link'}
+                >
+                  <Share2 size={14} color={post.hasReLinked ? '#10b981' : 'currentColor'} />
+                  <span>{post.reLinksCount || 0}</span>
+                </button>
+
+                {/* Bookmark Button */}
+                <button
+                  onClick={() => handleToggleBookmark(post._id)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: post.hasBookmarked ? 'var(--primary)' : 'var(--text-muted)',
+                    fontWeight: post.hasBookmarked ? 600 : 400,
+                    fontSize: '12px',
+                    padding: '2px 4px',
+                    borderRadius: '4px'
+                  }}
+                  data-testid={`bookmark-btn-${post._id}`}
+                  title={post.hasBookmarked ? 'Remove Bookmark' : 'Save Bookmark'}
+                >
+                  <Bookmark size={14} fill={post.hasBookmarked ? 'var(--primary)' : 'none'} color={post.hasBookmarked ? 'var(--primary)' : 'currentColor'} />
+                  <span>{post.hasBookmarked ? 'Saved' : 'Bookmark'}</span>
+                </button>
+
                 <span style={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: 'auto' }}>
                   <Eye size={13} /> {post.viewsCount || 0} views
                 </span>
               </div>
 
-              {/* Threaded Comments & Discussions Section (EPIC-008) */}
+              {/* Threaded Comments & Discussions Section (EPIC-008 & EPIC-009) */}
               {expandedComments[post._id] && (
                 <div
                   style={{
@@ -854,17 +1045,42 @@ export default function FeedSection({ user, token }) {
                                 )}
                               </div>
 
-                              {/* Delete button if authorized and not already deleted */}
-                              {!comment.isDeleted && (comment.isAuthor || (comment.author && comment.author._id === user?._id) || user?.role === 'admin' || user?.role === 'moderator') && (
-                                <button
-                                  onClick={() => handleDeleteComment(post._id, comment._id)}
-                                  title="Delete reply"
-                                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', padding: '2px' }}
-                                  data-testid={`delete-comment-${comment._id}`}
-                                >
-                                  <Trash2 size={12} />
-                                </button>
-                              )}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                {/* Comment Like button */}
+                                {!comment.isDeleted && (
+                                  <button
+                                    onClick={() => handleToggleCommentLike(post._id, comment._id)}
+                                    style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '3px',
+                                      background: 'none',
+                                      border: 'none',
+                                      cursor: isVerified ? 'pointer' : 'not-allowed',
+                                      color: comment.hasLiked ? '#ef4444' : 'var(--text-muted)',
+                                      fontSize: '11px',
+                                      padding: '1px 3px'
+                                    }}
+                                    data-testid={`like-comment-${comment._id}`}
+                                    title="Like comment (+1 rep)"
+                                  >
+                                    <Heart size={11} fill={comment.hasLiked ? '#ef4444' : 'none'} color={comment.hasLiked ? '#ef4444' : 'currentColor'} />
+                                    <span>{comment.likesCount || 0}</span>
+                                  </button>
+                                )}
+
+                                {/* Delete button if authorized and not already deleted */}
+                                {!comment.isDeleted && (comment.isAuthor || (comment.author && comment.author._id === user?._id) || user?.role === 'admin' || user?.role === 'moderator') && (
+                                  <button
+                                    onClick={() => handleDeleteComment(post._id, comment._id)}
+                                    title="Delete reply"
+                                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', padding: '2px' }}
+                                    data-testid={`delete-comment-${comment._id}`}
+                                  >
+                                    <Trash2 size={12} />
+                                  </button>
+                                )}
+                              </div>
                             </div>
 
                             <div style={{ color: comment.isDeleted ? 'var(--text-muted)' : 'var(--text-main)', fontStyle: comment.isDeleted ? 'italic' : 'normal' }}>
