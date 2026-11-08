@@ -9,7 +9,8 @@ const {
   USER_ROLES,
   VERIFICATION_DOC_TYPES,
   DEPARTMENTS,
-  SEMESTERS
+  SEMESTERS,
+  MATERIAL_TYPES
 } = require('./index');
 
 /**
@@ -92,6 +93,14 @@ function isValidCourseCode(code) {
   return /^[A-Z]{3}\s\d{3}$/.test(code.trim().toUpperCase());
 }
 
+/**
+ * Validate Material Type
+ */
+function isValidMaterialType(type) {
+  if (!type || typeof type !== 'string') return false;
+  return MATERIAL_TYPES.includes(type.trim());
+}
+
 module.exports = {
   isValidUnilagEmail,
   isValidMatricNumber,
@@ -102,5 +111,6 @@ module.exports = {
   isValidDepartmentCode,
   isValidSemester,
   isValidAcademicSession,
-  isValidCourseCode
+  isValidCourseCode,
+  isValidMaterialType
 };

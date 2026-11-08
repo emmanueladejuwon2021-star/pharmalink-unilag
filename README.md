@@ -36,7 +36,7 @@ MERN stack (MongoDB, Express.js, React, Node.js).
 
 ## Project Status
 
-Foundation groundwork, student authentication, verification, academic structure management, user profiles & directory, social feed discussion engine, threaded peer comments, and social engagement (likes, re-links, bookmarks) have been built and tested.
+Foundation groundwork, student authentication, verification, academic structure management, user profiles & directory, social feed discussion engine, threaded peer comments, social engagement, peer connections, and Materials Vault document management have been built and tested.
 
 ## How to Use This Repository
 
@@ -155,6 +155,14 @@ Verify API status by querying:
 - `GET /api/profile/:id/follow-status` — Retrieve follow relationship status (`isFollowing: Boolean`) relative to authenticated student
 - `GET /api/profile/directory/students` — Faculty Student Directory decorated with `isFollowing: Boolean` for each peer relative to authenticated student
 
+### Materials Vault & Document Storage Endpoints (EPIC-011 & EPIC-012)
+- `POST /api/materials` — Upload academic material to vault (verified pharmacy students only; validates courseCode, department, level, semester, and type; awards +10 reputation points)
+- `GET /api/materials` — Search and filter academic materials by department, level, semester, course code, material type, academic session, and keywords with pagination
+- `GET /api/materials/:id` — Retrieve material details by ID and atomically increments viewsCount
+- `GET/POST /api/materials/:id/download` — Record material download atomically and award +2 reputation points to uploader
+- `PATCH /api/materials/:id` — Update material metadata (uploader or admin only)
+- `DELETE /api/materials/:id` — Soft-delete material (uploader or admin/moderator only; decrements uploader materials count)
+
 ## Master Feature Checklist
 
 All features start as **Not Started**. Status must be updated honestly as work progresses (Not Started → In Progress → Implemented → Tested → Verified in Production). A feature is never marked Implemented based on placeholders or mock data.
@@ -168,8 +176,8 @@ All features start as **Not Started**. Status must be updated honestly as work p
 - [x] **EPIC-006** — Social Feed and Content Discovery (Tested)
 - [x] **EPIC-007** — Post Creation and Management (Tested)
 - [x] **EPIC-008** — Comments and Discussions (Tested)
-- [ ] **EPIC-011** — Materials Vault
-- [ ] **EPIC-012** — File Storage and Document Processing
+- [x] **EPIC-011** — Materials Vault (Tested)
+- [x] **EPIC-012** — File Storage and Document Processing (Tested)
 - [ ] **EPIC-016** — Administration Dashboard
 - [ ] **EPIC-017** — Moderation and Reporting
 - [ ] **EPIC-024** — Production Infrastructure and Quality Assurance

@@ -5,8 +5,10 @@ const {
   USER_ROLES,
   VERIFICATION_STATUS,
   DEPARTMENTS,
-  SEMESTERS
-} = require('./index');
+  SEMESTERS,
+  MATERIAL_TYPES,
+  isValidMaterialType
+} = require('./main');
 
 test('shared constants contains 200L to 500L', () => {
   assert.deepStrictEqual(ELIGIBLE_LEVELS, ['200L', '300L', '400L', '500L']);
@@ -33,4 +35,25 @@ test('contains 5 official UNILAG Pharmacy departments', () => {
 
 test('contains first and second semesters', () => {
   assert.deepStrictEqual(SEMESTERS, ['First Semester', 'Second Semester']);
+});
+
+test('defines official material types and validates them', () => {
+  const expectedTypes = [
+    'Lecture Note',
+    'Past Question',
+    'Lab Resource',
+    'Summary Sheet',
+    'Textbook / Reference',
+    'Article / Guide'
+  ];
+  assert.deepStrictEqual(MATERIAL_TYPES, expectedTypes);
+  assert.strictEqual(isValidMaterialType('Lecture Note'), true);
+  assert.strictEqual(isValidMaterialType('Past Question'), true);
+  assert.strictEqual(isValidMaterialType('Lab Resource'), true);
+  assert.strictEqual(isValidMaterialType('Summary Sheet'), true);
+  assert.strictEqual(isValidMaterialType('Textbook / Reference'), true);
+  assert.strictEqual(isValidMaterialType('Article / Guide'), true);
+  assert.strictEqual(isValidMaterialType('Random File'), false);
+  assert.strictEqual(isValidMaterialType(''), false);
+  assert.strictEqual(isValidMaterialType(null), false);
 });

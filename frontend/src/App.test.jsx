@@ -71,6 +71,51 @@ const mockPeerStudents = [
   }
 ];
 
+const mockMaterials = [
+  {
+    _id: 'm1',
+    title: 'Pharmacokinetics Compartment Modeling Notes',
+    description: 'Detailed one-compartment and two-compartment IV bolus equations and clearance calculations.',
+    courseCode: 'CPH 401',
+    department: 'CPH',
+    level: '400L',
+    semester: 'First Semester',
+    materialType: 'Lecture Note',
+    academicSession: '2024/2025',
+    fileUrl: 'https://storage.unilag.edu.ng/materials/cph401_notes.pdf',
+    fileName: 'cph401_notes.pdf',
+    downloadsCount: 5,
+    viewsCount: 22,
+    uploader: {
+      _id: 'u1',
+      fullName: 'Chioma Okeke',
+      level: '300L'
+    },
+    isUploader: true
+  },
+  {
+    _id: 'm2',
+    title: 'Medicinal Chemistry SAR Summary Sheet',
+    description: 'Structure-activity relationships for adrenergic agonists and beta blockers.',
+    courseCode: 'PCH 301',
+    department: 'PCH',
+    level: '300L',
+    semester: 'Second Semester',
+    materialType: 'Summary Sheet',
+    academicSession: '2024/2025',
+    fileUrl: 'https://storage.unilag.edu.ng/materials/pch301_sar.pdf',
+    fileName: 'pch301_sar.pdf',
+    downloadsCount: 14,
+    viewsCount: 48,
+    uploader: {
+      _id: 'u3',
+      fullName: 'Babatunde Fashola',
+      level: '400L'
+    },
+    isUploader: false
+  }
+];
+
 const mockPosts = [
   {
     _id: 'p1',
@@ -341,6 +386,105 @@ function setupGlobalFetch(userOverrides = {}) {
           success: true,
           posts: mockPosts,
           pagination: { page: 1, limit: 20, total: 2, totalPages: 1 }
+        })
+      });
+    }
+    if (url.includes('/api/materials')) {
+      if (url.includes('/download')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            success: true,
+            downloadUrl: 'https://storage.unilag.edu.ng/materials/cph401_notes.pdf',
+            fileName: 'cph401_notes.pdf',
+            downloadsCount: 6
+          })
+        });
+      }
+      if (options.method === 'DELETE') {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ success: true, message: 'Material deleted successfully' })
+        });
+      }
+      if (options.method === 'POST') {
+        const body = options.body ? JSON.parse(options.body) : {};
+        if (userOverrides.verificationStatus === 'unverified') {
+          return Promise.resolve({
+            ok: false,
+            status: 403,
+            json: async () => ({
+              success: false,
+              message: 'Student verification required. Please verify your student status to upload materials.'
+            })
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            success: true,
+            material: {
+              _id: 'm3',
+              title: body.title || 'New Uploaded Material',
+              description: body.description || '',
+              courseCode: body.courseCode || 'PCT 301',
+              department: body.department || 'PCT',
+              level: body.level || '300L',
+              semester: body.semester || 'First Semester',
+              materialType: body.materialType || 'Lecture Note',
+              academicSession: body.academicSession || '2024/2025',
+              fileUrl: body.fileUrl || 'https://storage.unilag.edu.ng/materials/new.pdf',
+              fileName: body.fileName || 'new.pdf',
+              downloadsCount: 0,
+              viewsCount: 0,
+              uploader: {
+                _id: 'u1',
+                fullName: 'Chioma Okeke',
+                level: '300L'
+              },
+              isUploader: true
+            }
+          })
+        });
+      }
+
+      // GET /api/materials with filter support
+      let filtered = JSON.parse(JSON.stringify(mockMaterials));
+      try {
+        const urlObj = new URL(url, 'http://localhost');
+        const level = urlObj.searchParams.get('level');
+        const dept = urlObj.searchParams.get('department');
+        const type = urlObj.searchParams.get('materialType');
+        const search = urlObj.searchParams.get('search');
+
+        if (level && level !== 'all' && level !== 'All Levels') {
+          filtered = filtered.filter((m) => m.level === level);
+        }
+        if (dept && dept !== 'all') {
+          filtered = filtered.filter((m) => m.department === dept);
+        }
+        if (type && type !== 'all') {
+          filtered = filtered.filter((m) => m.materialType === type);
+        }
+        if (search) {
+          const s = search.toLowerCase();
+          filtered = filtered.filter(
+            (m) =>
+              m.title.toLowerCase().includes(s) ||
+              m.courseCode.toLowerCase().includes(s) ||
+              m.description.toLowerCase().includes(s)
+          );
+        }
+      } catch (e) {
+        // Fallback for relative url
+      }
+
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          success: true,
+          materials: filtered,
+          pagination: { page: 1, limit: 20, total: filtered.length, totalPages: 1 }
         })
       });
     }
@@ -775,5 +919,176 @@ describe('Following and Social Connections (EPIC-010)', () => {
         expect(screen.getByTestId('profile-error')).toHaveTextContent(/Student verification is required to follow peers/i);
       });
     }
+  });
+});
+
+describe('EPIC-011 & EPIC-012: Materials Vault & Document Storage', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    localStorage.clear();
+    localStorage.setItem('pharmalink_token', 'mock-token');
+  });
+
+  it('navigates to Materials Vault from sidebar and renders material cards', async () => {
+    setupGlobalFetch({ verificationStatus: 'verified' });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('nav-vault')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId('nav-vault'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('materials-section')).toBeInTheDocument();
+      expect(screen.getByText(/Materials Vault & Academic Repository/i)).toBeInTheDocument();
+      expect(screen.getByTestId('material-card-m1')).toBeInTheDocument();
+      expect(screen.getByTestId('material-card-m2')).toBeInTheDocument();
+      expect(screen.getByText('Pharmacokinetics Compartment Modeling Notes')).toBeInTheDocument();
+      expect(screen.getByText('Medicinal Chemistry SAR Summary Sheet')).toBeInTheDocument();
+    });
+  });
+
+  it('filters materials by level and department', async () => {
+    setupGlobalFetch({ verificationStatus: 'verified' });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('nav-vault')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId('nav-vault'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('filter-level-300L')).toBeInTheDocument();
+    });
+
+    // Filter by 300L
+    fireEvent.click(screen.getByTestId('filter-level-300L'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('material-card-m2')).toBeInTheDocument();
+      expect(screen.queryByTestId('material-card-m1')).not.toBeInTheDocument();
+    });
+
+    // Filter by department PCH
+    fireEvent.change(screen.getByTestId('materials-dept-select'), {
+      target: { value: 'PCH' }
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('material-card-m2')).toBeInTheDocument();
+    });
+  });
+
+  it('filters materials by keyword search', async () => {
+    setupGlobalFetch({ verificationStatus: 'verified' });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('nav-vault')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId('nav-vault'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('materials-search-input')).toBeInTheDocument();
+    });
+
+    // Search for "SAR"
+    fireEvent.change(screen.getByTestId('materials-search-input'), {
+      target: { value: 'SAR' }
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('material-card-m2')).toBeInTheDocument();
+      expect(screen.queryByTestId('material-card-m1')).not.toBeInTheDocument();
+    });
+  });
+
+  it('allows student to download material and increments downloads count', async () => {
+    setupGlobalFetch({ verificationStatus: 'verified' });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('nav-vault')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId('nav-vault'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('download-material-btn-m1')).toBeInTheDocument();
+      expect(screen.getByTestId('material-downloads-m1')).toHaveTextContent('5 Downloads');
+    });
+
+    fireEvent.click(screen.getByTestId('download-material-btn-m1'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('material-downloads-m1')).toHaveTextContent('6 Downloads');
+    });
+  });
+
+  it('allows verified student to open upload modal and upload a material', async () => {
+    setupGlobalFetch({ verificationStatus: 'verified' });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('nav-vault')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId('nav-vault'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('open-upload-modal-btn')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId('open-upload-modal-btn'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('upload-material-modal')).toBeInTheDocument();
+      expect(screen.getByTestId('material-title-input')).toBeInTheDocument();
+    });
+
+    fireEvent.change(screen.getByTestId('material-title-input'), {
+      target: { value: 'PCT 301 Physical Pharmacy Suspensions & Emulsions' }
+    });
+    fireEvent.change(screen.getByTestId('material-course-input'), {
+      target: { value: 'PCT 301' }
+    });
+
+    fireEvent.click(screen.getByTestId('submit-material-btn'));
+
+    await waitFor(() => {
+      expect(screen.getByText('PCT 301 Physical Pharmacy Suspensions & Emulsions')).toBeInTheDocument();
+    });
+  });
+
+  it('displays verification requirement barrier when student is unverified', async () => {
+    setupGlobalFetch({ verificationStatus: 'unverified' });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('nav-vault')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId('nav-vault'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('unverified-material-barrier')).toBeInTheDocument();
+      expect(screen.getByText(/Student verification is required to upload materials/i)).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId('open-upload-modal-btn'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('unverified-material-barrier')).toBeInTheDocument();
+      expect(screen.queryByTestId('upload-material-modal')).not.toBeInTheDocument();
+    });
   });
 });

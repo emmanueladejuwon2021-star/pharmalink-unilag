@@ -3,6 +3,8 @@
  * Strict product boundaries and domain entities
  */
 
+const { MATERIAL_TYPES } = require('./constants');
+
 // Eligible student academic levels in UNILAG Faculty of Pharmacy
 const ELIGIBLE_LEVELS = ['200L', '300L', '400L', '500L'];
 
@@ -97,7 +99,9 @@ module.exports = {
   POST_CATEGORIES,
   FEED_SORT_OPTIONS,
   MATERIAL_CATEGORIES,
+  MATERIAL_TYPES,
   VERIFICATION_DOC_TYPES,
   DEPARTMENTS,
-  SEMESTERS
+  SEMESTERS,
+  isValidMaterialType: (type) => require('./validation').isValidMaterialType(type)
 };
