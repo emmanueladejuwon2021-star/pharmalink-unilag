@@ -1,5 +1,8 @@
 const Post = require('../models/Post');
 const User = require('../models/User');
+const Like = require('../models/Like');
+const ReLink = require('../models/ReLink');
+const Bookmark = require('../models/Bookmark');
 const {
   POST_CATEGORIES,
   POST_AUDIENCE_LEVELS,
@@ -153,7 +156,7 @@ async function createPost(req, res, next) {
 }
 
 /**
- * Retrieve paginated social feed with filters
+ * Retrieve public social feed with filtering, pagination, and sorting
  * GET /api/posts
  */
 async function getFeed(req, res, next) {
@@ -165,26 +168,33 @@ async function getFeed(req, res, next) {
       courseCode,
       tag,
       search,
-      sort = 'latest',
+      sort,
       page = 1,
       limit = 20
     } = req.query;
 
     const query = { isDeleted: false };
 
-    // Target academic level filter
-    if (level && level !== 'all' && level !== 'All Levels') {
-      query.$or = [{ level: level }, { level: 'All Levels' }];
+    // Level filter
+    if (level && level !== 'All Levels') {
+      if (isValidPostTargetLevel(level)) {
+        query.level = { $in: [level, 'All Levels'] };
+      }
     }
 
     // Department filter
     if (department && department !== 'all') {
-      query.department = department.toUpperCase();
+      const deptUpper = department.toUpperCase();
+      if (isValidDepartmentCode(deptUpper)) {
+        query.department = deptUpper;
+      }
     }
 
     // Category filter
-    if (category && category !== 'all') {
-      query.category = category;
+    if (category && category !== 'All') {
+      if (isValidPostCategory(category)) {
+        query.category = category;
+      }
     }
 
     // Course code filter
@@ -223,7 +233,30 @@ async function getFeed(req, res, next) {
     ]);
 
     const currentUserId = req.user ? req.user._id : null;
-    const safePosts = posts.map((p) => p.toSafePost(currentUserId));
+    let likedPostIds = new Set();
+    let relinkedPostIds = new Set();
+    let bookmarkedPostIds = new Set();
+
+    if (currentUserId && posts.length > 0) {
+      const postIds = posts.map((p) => p._id);
+      const [likes, relinks, bookmarks] = await Promise.all([
+        Like.find({ user: currentUserId, targetType: 'Post', targetId: { $in: postIds } }).select('targetId'),
+        ReLink.find({ user: currentUserId, post: { $in: postIds } }).select('post'),
+        Bookmark.find({ user: currentUserId, post: { $in: postIds } }).select('post')
+      ]);
+
+      likedPostIds = new Set(likes.map((l) => l.targetId.toString()));
+      relinkedPostIds = new Set(relinks.map((r) => r.post.toString()));
+      bookmarkedPostIds = new Set(bookmarks.map((b) => b.post.toString()));
+    }
+
+    const safePosts = posts.map((p) => {
+      const safe = p.toSafePost(currentUserId);
+      safe.hasLiked = likedPostIds.has(p._id.toString());
+      safe.hasReLinked = relinkedPostIds.has(p._id.toString());
+      safe.hasBookmarked = bookmarkedPostIds.has(p._id.toString());
+      return safe;
+    });
 
     return res.status(200).json({
       success: true,
@@ -262,10 +295,26 @@ async function getPostById(req, res, next) {
     Post.findByIdAndUpdate(id, { $inc: { viewsCount: 1 } }).exec();
 
     const currentUserId = req.user ? req.user._id : null;
+    const safePost = post.toSafePost(currentUserId);
+
+    if (currentUserId) {
+      const [like, relink, bookmark] = await Promise.all([
+        Like.findOne({ user: currentUserId, targetType: 'Post', targetId: id }),
+        ReLink.findOne({ user: currentUserId, post: id }),
+        Bookmark.findOne({ user: currentUserId, post: id })
+      ]);
+      safePost.hasLiked = Boolean(like);
+      safePost.hasReLinked = Boolean(relink);
+      safePost.hasBookmarked = Boolean(bookmark);
+    } else {
+      safePost.hasLiked = false;
+      safePost.hasReLinked = false;
+      safePost.hasBookmarked = false;
+    }
 
     return res.status(200).json({
       success: true,
-      post: post.toSafePost(currentUserId)
+      post: safePost
     });
   } catch (error) {
     next(error);

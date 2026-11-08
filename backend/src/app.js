@@ -9,6 +9,7 @@ const verificationRoutes = require('./routes/verificationRoutes');
 const academicRoutes = require('./routes/academicRoutes');
 const profileRoutes = require('./routes/profileRoutes');
 const postRoutes = require('./routes/postRoutes');
+const bookmarkRoutes = require('./routes/bookmarkRoutes');
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 
 const app = express();
@@ -41,6 +42,7 @@ app.use('/api/verification', verificationRoutes);
 app.use('/api/academic', academicRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/posts', postRoutes);
+app.use('/api/bookmarks', bookmarkRoutes);
 
 // Root fallback
 app.get('/', (req, res) => {

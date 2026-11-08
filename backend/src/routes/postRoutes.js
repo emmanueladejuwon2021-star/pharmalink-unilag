@@ -13,6 +13,12 @@ const {
   updateComment,
   deleteComment
 } = require('../controllers/commentController');
+const {
+  toggleLikePost,
+  toggleLikeComment,
+  toggleReLinkPost,
+  toggleBookmark
+} = require('../controllers/engagementController');
 const { requireAuth } = require('../middleware/authMiddleware');
 
 const router = express.Router();
@@ -29,10 +35,18 @@ router.delete('/:id', requireAuth, deletePost);
 // Pin / Unpin post
 router.post('/:id/pin', requireAuth, togglePinPost);
 
+// Engagement: Likes, Re-Links, and Bookmarks (EPIC-009)
+router.post('/:id/like', requireAuth, toggleLikePost);
+router.post('/:id/relink', requireAuth, toggleReLinkPost);
+router.post('/:id/bookmark', requireAuth, toggleBookmark);
+
 // Threaded Comments & Discussions (EPIC-008)
 router.get('/:postId/comments', requireAuth, getComments);
 router.post('/:postId/comments', requireAuth, createComment);
 router.patch('/:postId/comments/:commentId', requireAuth, updateComment);
 router.delete('/:postId/comments/:commentId', requireAuth, deleteComment);
+
+// Comment Engagement (EPIC-009)
+router.post('/:postId/comments/:commentId/like', requireAuth, toggleLikeComment);
 
 module.exports = router;

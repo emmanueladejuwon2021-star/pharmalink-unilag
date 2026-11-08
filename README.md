@@ -36,7 +36,7 @@ MERN stack (MongoDB, Express.js, React, Node.js).
 
 ## Project Status
 
-Foundation groundwork, student authentication, verification, academic structure management, user profiles & directory, social feed discussion engine, and threaded peer comments have been built and tested.
+Foundation groundwork, student authentication, verification, academic structure management, user profiles & directory, social feed discussion engine, threaded peer comments, and social engagement (likes, re-links, bookmarks) have been built and tested.
 
 ## How to Use This Repository
 
@@ -141,6 +141,13 @@ Verify API status by querying:
 - `PATCH /api/posts/:postId/comments/:commentId` — Edit comment content (author or admin only)
 - `DELETE /api/posts/:postId/comments/:commentId` — Soft-delete a comment (author, admin, or moderator only; decrements post replies counter)
 
+### Social Engagement Endpoints (EPIC-009)
+- `POST /api/posts/:id/like` — Toggle like/unlike on a post (verified students only; atomic count update and +1 author reputation point)
+- `POST /api/posts/:postId/comments/:commentId/like` — Toggle like/unlike on a comment (verified students only)
+- `POST /api/posts/:id/relink` — Toggle re-link on a post (verified students only; atomic reLinksCount update)
+- `POST /api/posts/:id/bookmark` — Toggle bookmarking a post for personal reference
+- `GET /api/bookmarks` — Retrieve student's saved bookmarked posts
+
 ## Master Feature Checklist
 
 All features start as **Not Started**. Status must be updated honestly as work progresses (Not Started → In Progress → Implemented → Tested → Verified in Production). A feature is never marked Implemented based on placeholders or mock data.
@@ -163,7 +170,7 @@ All features start as **Not Started**. Status must be updated honestly as work p
 ### High Priority
 
 - [x] **EPIC-005** — User Profiles and Identity (Tested)
-- [ ] **EPIC-009** — Likes, Re-Links and Bookmarks
+- [x] **EPIC-009** — Likes, Re-Links and Bookmarks (Tested)
 - [ ] **EPIC-010** — Following and Social Connections
 - [ ] **EPIC-013** — Global Search and Discovery
 - [ ] **EPIC-014** — Notifications

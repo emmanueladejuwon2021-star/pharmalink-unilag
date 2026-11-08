@@ -80,6 +80,9 @@ const mockPosts = [
     repliesCount: 3,
     reLinksCount: 2,
     viewsCount: 45,
+    hasLiked: false,
+    hasReLinked: false,
+    hasBookmarked: false,
     isEdited: false,
     createdAt: new Date().toISOString(),
     author: {
@@ -106,6 +109,9 @@ const mockPosts = [
     repliesCount: 6,
     reLinksCount: 5,
     viewsCount: 88,
+    hasLiked: false,
+    hasReLinked: false,
+    hasBookmarked: false,
     isEdited: false,
     createdAt: new Date().toISOString(),
     author: {
@@ -135,6 +141,8 @@ const mockComments = [
     },
     isAuthor: false,
     isDeleted: false,
+    likesCount: 2,
+    hasLiked: false,
     createdAt: new Date().toISOString()
   }
 ];
@@ -224,6 +232,54 @@ function setupGlobalFetch(userOverrides = {}) {
           success: true,
           students: mockPeerStudents,
           pagination: { page: 1, limit: 20, total: 2, totalPages: 1 }
+        })
+      });
+    }
+    if (url.includes('/like')) {
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          success: true,
+          liked: true,
+          likesCount: 15,
+          message: 'Post liked.'
+        })
+      });
+    }
+    if (url.includes('/relink')) {
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          success: true,
+          relinked: true,
+          reLinksCount: 3,
+          message: 'Post re-linked to your network!'
+        })
+      });
+    }
+    if (url.includes('/api/bookmarks')) {
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          success: true,
+          bookmarks: [
+            {
+              _id: 'bm1',
+              createdAt: new Date().toISOString(),
+              post: mockPosts[0]
+            }
+          ],
+          count: 1
+        })
+      });
+    }
+    if (url.includes('/bookmark')) {
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          success: true,
+          bookmarked: true,
+          message: 'Post saved to your bookmarks.'
         })
       });
     }
@@ -560,6 +616,61 @@ describe('Comments and Discussion Threads (EPIC-008)', () => {
       expect(screen.getByTestId('comments-section-p1')).toBeInTheDocument();
       expect(screen.getByTestId('comment-unverified-prompt-p1')).toBeInTheDocument();
       expect(screen.queryByTestId('comment-input-p1')).not.toBeInTheDocument();
+    });
+  });
+});
+
+describe('Likes, Re-Links and Bookmarks (EPIC-009)', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    localStorage.clear();
+    localStorage.setItem('pharmalink_token', 'mock-token');
+  });
+
+  it('allows verified student to like and re-link a post', async () => {
+    setupGlobalFetch({ verificationStatus: 'verified' });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('like-btn-p1')).toBeInTheDocument();
+      expect(screen.getByTestId('relink-btn-p1')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId('like-btn-p1'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('like-btn-p1')).toHaveTextContent('15');
+    });
+
+    fireEvent.click(screen.getByTestId('relink-btn-p1'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('relink-btn-p1')).toHaveTextContent('3');
+    });
+  });
+
+  it('allows student to bookmark a post and switch to Bookmarks tab', async () => {
+    setupGlobalFetch({ verificationStatus: 'verified' });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('bookmark-btn-p1')).toBeInTheDocument();
+      expect(screen.getByTestId('tab-bookmarks')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId('bookmark-btn-p1'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('bookmark-btn-p1')).toHaveTextContent('Saved');
+    });
+
+    // Switch to Bookmarks tab
+    fireEvent.click(screen.getByTestId('tab-bookmarks'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Pharmaceutics Physical Pharmacy Lab Report')).toBeInTheDocument();
     });
   });
 });

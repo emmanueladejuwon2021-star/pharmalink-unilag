@@ -1,6 +1,7 @@
 const Comment = require('../models/Comment');
 const Post = require('../models/Post');
 const User = require('../models/User');
+const Like = require('../models/Like');
 
 /**
  * Add a comment or reply to a post
@@ -106,7 +107,22 @@ async function getComments(req, res, next) {
       .populate('author', 'fullName level department verificationStatus role avatar');
 
     const currentUserId = req.user ? req.user._id : null;
-    const safeComments = comments.map((c) => c.toSafeComment(currentUserId));
+    let likedCommentIds = new Set();
+    if (currentUserId && comments.length > 0) {
+      const commentIds = comments.map((c) => c._id);
+      const likes = await Like.find({
+        user: currentUserId,
+        targetType: 'Comment',
+        targetId: { $in: commentIds }
+      }).select('targetId');
+      likedCommentIds = new Set(likes.map((l) => l.targetId.toString()));
+    }
+
+    const safeComments = comments.map((c) => {
+      const safe = c.toSafeComment(currentUserId);
+      safe.hasLiked = likedCommentIds.has(c._id.toString());
+      return safe;
+    });
 
     return res.status(200).json({
       success: true,
