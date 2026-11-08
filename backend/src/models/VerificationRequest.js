@@ -91,6 +91,9 @@ verificationRequestSchema.index(
   { partialFilterExpression: { status: 'pending' } }
 );
 
+verificationRequestSchema.index({ status: 1, createdAt: -1 });
+verificationRequestSchema.index({ level: 1, status: 1 });
+
 const VerificationRequest = mongoose.model('VerificationRequest', verificationRequestSchema);
 
 module.exports = VerificationRequest;

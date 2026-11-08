@@ -103,6 +103,10 @@ const userSchema = new mongoose.Schema(
       enum: Object.values(VERIFICATION_STATUS),
       default: VERIFICATION_STATUS.UNVERIFIED
     },
+    isSuspended: {
+      type: Boolean,
+      default: false
+    },
     lastLoginAt: {
       type: Date
     }
@@ -172,9 +176,16 @@ userSchema.methods.toPublicProfile = function () {
     },
     role: this.role,
     verificationStatus: this.verificationStatus,
+    isSuspended: !!this.isSuspended,
     createdAt: this.createdAt
   };
 };
+
+userSchema.index({ level: 1 });
+userSchema.index({ department: 1 });
+userSchema.index({ role: 1 });
+userSchema.index({ verificationStatus: 1 });
+userSchema.index({ 'stats.reputationPoints': -1 });
 
 const User = mongoose.model('User', userSchema);
 

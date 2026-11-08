@@ -7,6 +7,13 @@ const {
   FEED_SORT_OPTIONS,
   MATERIAL_CATEGORIES,
   MATERIAL_TYPES,
+  SEARCH_TYPES,
+  NOTIFICATION_TYPES,
+  ANNOUNCEMENT_CATEGORIES,
+  ANNOUNCEMENT_PRIORITIES,
+  REPORT_CONTENT_TYPES,
+  REPORT_REASONS,
+  REPORT_STATUSES,
   VERIFICATION_DOC_TYPES,
   DEPARTMENTS,
   SEMESTERS
@@ -23,7 +30,13 @@ const {
   isValidSemester,
   isValidAcademicSession,
   isValidCourseCode,
-  isValidMaterialType
+  isValidMaterialType,
+  isValidSearchType,
+  isValidNotificationType,
+  isValidAnnouncementCategory,
+  isValidAnnouncementPriority,
+  isValidReportContentType,
+  isValidReportReason
 } = require('./validation');
 
 module.exports = {
@@ -35,6 +48,13 @@ module.exports = {
   FEED_SORT_OPTIONS,
   MATERIAL_CATEGORIES,
   MATERIAL_TYPES,
+  SEARCH_TYPES,
+  NOTIFICATION_TYPES,
+  ANNOUNCEMENT_CATEGORIES,
+  ANNOUNCEMENT_PRIORITIES,
+  REPORT_CONTENT_TYPES,
+  REPORT_REASONS,
+  REPORT_STATUSES,
   VERIFICATION_DOC_TYPES,
   DEPARTMENTS,
   SEMESTERS,
@@ -48,5 +68,11 @@ module.exports = {
   isValidSemester,
   isValidAcademicSession,
   isValidCourseCode,
-  isValidMaterialType
+  isValidMaterialType,
+  isValidSearchType,
+  isValidNotificationType,
+  isValidAnnouncementCategory,
+  isValidAnnouncementPriority,
+  isValidReportContentType,
+  isValidReportReason
 };

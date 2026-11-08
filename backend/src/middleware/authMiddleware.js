@@ -30,6 +30,13 @@ async function requireAuth(req, res, next) {
       });
     }
 
+    if (user.isSuspended) {
+      return res.status(403).json({
+        success: false,
+        message: 'Account has been suspended. Please contact moderation.'
+      });
+    }
+
     req.user = user;
     next();
   } catch (error) {
@@ -65,14 +72,19 @@ function requireVerified(req, res, next) {
     });
   }
 
-  if (req.user.verificationStatus !== 'verified') {
-    return res.status(403).json({
-      success: false,
-      message: 'Access restricted to verified UNILAG Pharmacy students.'
-    });
+  // Admin and moderators have elevated permissions
+  if (
+    req.user.role === 'admin' ||
+    req.user.role === 'moderator' ||
+    req.user.verificationStatus === 'verified'
+  ) {
+    return next();
   }
 
-  next();
+  return res.status(403).json({
+    success: false,
+    message: 'Access restricted to verified UNILAG Pharmacy students.'
+  });
 }
 
 module.exports = {

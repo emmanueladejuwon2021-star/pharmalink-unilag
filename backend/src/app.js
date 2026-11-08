@@ -11,6 +11,11 @@ const profileRoutes = require('./routes/profileRoutes');
 const postRoutes = require('./routes/postRoutes');
 const bookmarkRoutes = require('./routes/bookmarkRoutes');
 const materialRoutes = require('./routes/materialRoutes');
+const searchRoutes = require('./routes/searchRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
+const announcementRoutes = require('./routes/announcementRoutes');
+const adminRoutes = require('./routes/adminRoutes');
+const reportRoutes = require('./routes/reportRoutes');
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 
 const app = express();
@@ -45,6 +50,11 @@ app.use('/api/profile', profileRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/bookmarks', bookmarkRoutes);
 app.use('/api/materials', materialRoutes);
+app.use('/api/search', searchRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/announcements', announcementRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/reports', reportRoutes);
 
 // Root fallback
 app.get('/', (req, res) => {
@@ -58,7 +68,7 @@ app.get('/', (req, res) => {
 // 404 handler
 app.use(notFoundHandler);
 
-// Centralized error handler
+// Global error handler
 app.use(errorHandler);
 
 module.exports = app;
