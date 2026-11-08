@@ -49,7 +49,10 @@ const mockPeerStudents = [
     department: 'CPH',
     bio: 'Future Clinical Pharmacist',
     interests: ['Pharmacokinetics', 'Hospital Pharmacy'],
-    stats: { postsCount: 5, materialsCount: 2, reputationPoints: 30 },
+    stats: { postsCount: 5, materialsCount: 2, reputationPoints: 30, followersCount: 12, followingCount: 8 },
+    followersCount: 12,
+    followingCount: 8,
+    isFollowing: false,
     verificationStatus: 'verified'
   },
   {
@@ -60,7 +63,10 @@ const mockPeerStudents = [
     department: 'PCH',
     bio: 'Medicinal chemistry researcher',
     interests: ['Drug Discovery'],
-    stats: { postsCount: 3, materialsCount: 1, reputationPoints: 15 },
+    stats: { postsCount: 3, materialsCount: 1, reputationPoints: 15, followersCount: 12, followingCount: 8 },
+    followersCount: 12,
+    followingCount: 8,
+    isFollowing: false,
     verificationStatus: 'verified'
   }
 ];
@@ -170,7 +176,7 @@ function setupGlobalFetch(userOverrides = {}) {
             interests: ['Organic Synthesis', 'Medicinal Plants'],
             role: 'student',
             verificationStatus: 'unverified',
-            stats: { postsCount: 2, materialsCount: 4, reputationPoints: 25 },
+            stats: { postsCount: 2, materialsCount: 4, reputationPoints: 25, followersCount: 10, followingCount: 5 },
             ...userOverrides
           }
         })
@@ -219,7 +225,7 @@ function setupGlobalFetch(userOverrides = {}) {
             interests: ['Organic Synthesis', 'Medicinal Plants'],
             role: 'student',
             verificationStatus: userOverrides.verificationStatus || 'unverified',
-            stats: { postsCount: 2, materialsCount: 4, reputationPoints: 25 },
+            stats: { postsCount: 2, materialsCount: 4, reputationPoints: 25, followersCount: 10, followingCount: 5 },
             ...userOverrides
           }
         })
@@ -230,8 +236,18 @@ function setupGlobalFetch(userOverrides = {}) {
         ok: true,
         json: async () => ({
           success: true,
-          students: mockPeerStudents,
+          students: JSON.parse(JSON.stringify(mockPeerStudents)),
           pagination: { page: 1, limit: 20, total: 2, totalPages: 1 }
+        })
+      });
+    }
+    if (url.includes('/follow')) {
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          success: true,
+          isFollowing: true,
+          message: 'Now following student.'
         })
       });
     }
@@ -672,5 +688,92 @@ describe('Likes, Re-Links and Bookmarks (EPIC-009)', () => {
     await waitFor(() => {
       expect(screen.getByText('Pharmaceutics Physical Pharmacy Lab Report')).toBeInTheDocument();
     });
+  });
+});
+
+describe('Following and Social Connections (EPIC-010)', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    localStorage.clear();
+    localStorage.setItem('pharmalink_token', 'mock-token');
+  });
+
+  it('renders followers and following stats on user profile summary', async () => {
+    setupGlobalFetch({ verificationStatus: 'verified' });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('nav-profile')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId('nav-profile'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('profile-stat-followers')).toBeInTheDocument();
+      expect(screen.getByTestId('profile-stat-following')).toBeInTheDocument();
+    });
+  });
+
+  it('allows verified student to follow a peer in directory and updates button state and counters', async () => {
+    setupGlobalFetch({ verificationStatus: 'verified' });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('nav-profile')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId('nav-profile'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('tab-directory')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId('tab-directory'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('follow-btn-s1')).toBeInTheDocument();
+      expect(screen.getByTestId('follow-btn-s1')).toHaveTextContent('Follow');
+      expect(screen.getByTestId('followers-count-s1')).toHaveTextContent('12 Followers');
+      expect(screen.getByTestId('following-count-s1')).toHaveTextContent('8 Following');
+    });
+
+    fireEvent.click(screen.getByTestId('follow-btn-s1'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('follow-btn-s1')).toHaveTextContent('Following');
+      expect(screen.getByTestId('followers-count-s1')).toHaveTextContent('13 Followers');
+    });
+  });
+
+  it('shows restriction message when unverified student attempts to follow peers or views directory', async () => {
+    setupGlobalFetch({ verificationStatus: 'unverified' });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('nav-profile')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId('nav-profile'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('tab-directory')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId('tab-directory'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('unverified-follow-banner')).toBeInTheDocument();
+      expect(screen.getByTestId('unverified-follow-banner')).toHaveTextContent(/Student verification is required to follow peers/i);
+    });
+
+    if (screen.queryByTestId('follow-btn-s1')) {
+      fireEvent.click(screen.getByTestId('follow-btn-s1'));
+      await waitFor(() => {
+        expect(screen.getByTestId('profile-error')).toHaveTextContent(/Student verification is required to follow peers/i);
+      });
+    }
   });
 });

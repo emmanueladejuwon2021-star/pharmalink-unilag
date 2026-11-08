@@ -81,9 +81,11 @@ const userSchema = new mongoose.Schema(
       github: { type: String, trim: true, default: '' }
     },
     stats: {
-      postsCount: { type: Number, default: 0 },
-      materialsCount: { type: Number, default: 0 },
-      reputationPoints: { type: Number, default: 10 }
+      postsCount: { type: Number, default: 0, min: 0 },
+      materialsCount: { type: Number, default: 0, min: 0 },
+      reputationPoints: { type: Number, default: 10, min: 0 },
+      followersCount: { type: Number, default: 0, min: 0 },
+      followingCount: { type: Number, default: 0, min: 0 }
     },
     password: {
       type: String,
@@ -130,7 +132,24 @@ userSchema.methods.toSafeObject = function () {
   const obj = this.toObject();
   delete obj.password;
   delete obj.__v;
+  if (!obj.stats) {
+    obj.stats = {
+      postsCount: 0,
+      materialsCount: 0,
+      reputationPoints: 10,
+      followersCount: 0,
+      followingCount: 0
+    };
+  } else {
+    obj.stats.followersCount = obj.stats.followersCount !== undefined ? obj.stats.followersCount : 0;
+    obj.stats.followingCount = obj.stats.followingCount !== undefined ? obj.stats.followingCount : 0;
+  }
   return obj;
+};
+
+// Safe user alias
+userSchema.methods.toSafeUser = function () {
+  return this.toSafeObject();
 };
 
 // Public profile representation (for other students browsing directory)
@@ -144,7 +163,13 @@ userSchema.methods.toPublicProfile = function () {
     bio: this.bio || '',
     avatar: this.avatar || '',
     interests: this.interests || [],
-    stats: this.stats || { postsCount: 0, materialsCount: 0, reputationPoints: 10 },
+    stats: {
+      postsCount: this.stats?.postsCount || 0,
+      materialsCount: this.stats?.materialsCount || 0,
+      reputationPoints: this.stats?.reputationPoints !== undefined ? this.stats.reputationPoints : 10,
+      followersCount: this.stats?.followersCount || 0,
+      followingCount: this.stats?.followingCount || 0
+    },
     role: this.role,
     verificationStatus: this.verificationStatus,
     createdAt: this.createdAt

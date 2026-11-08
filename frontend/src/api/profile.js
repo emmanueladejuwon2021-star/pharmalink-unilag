@@ -58,3 +58,51 @@ export async function listStudentDirectory(token, filters = {}) {
   }
   return data;
 }
+
+export async function toggleFollowUser(token, userId) {
+  const res = await fetch(`${API_BASE}/profile/${userId}/follow`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`
+    }
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.message || 'Failed to toggle follow');
+  }
+  return data;
+}
+
+export async function fetchFollowers(token, userId) {
+  const res = await fetch(`${API_BASE}/profile/${userId}/followers`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.message || 'Failed to fetch followers');
+  }
+  return data;
+}
+
+export async function fetchFollowing(token, userId) {
+  const res = await fetch(`${API_BASE}/profile/${userId}/following`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.message || 'Failed to fetch following');
+  }
+  return data;
+}
+
+export async function fetchFollowStatus(token, userId) {
+  const res = await fetch(`${API_BASE}/profile/${userId}/follow-status`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.message || 'Failed to fetch follow status');
+  }
+  return data;
+}
