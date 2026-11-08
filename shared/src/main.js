@@ -6,6 +6,7 @@ const {
   POST_CATEGORIES,
   FEED_SORT_OPTIONS,
   MATERIAL_CATEGORIES,
+  MATERIAL_TYPES,
   VERIFICATION_DOC_TYPES,
   DEPARTMENTS,
   SEMESTERS
@@ -21,7 +22,8 @@ const {
   isValidDepartmentCode,
   isValidSemester,
   isValidAcademicSession,
-  isValidCourseCode
+  isValidCourseCode,
+  isValidMaterialType
 } = require('./validation');
 
 module.exports = {
@@ -32,6 +34,7 @@ module.exports = {
   POST_CATEGORIES,
   FEED_SORT_OPTIONS,
   MATERIAL_CATEGORIES,
+  MATERIAL_TYPES,
   VERIFICATION_DOC_TYPES,
   DEPARTMENTS,
   SEMESTERS,
@@ -44,5 +47,6 @@ module.exports = {
   isValidDepartmentCode,
   isValidSemester,
   isValidAcademicSession,
-  isValidCourseCode
+  isValidCourseCode,
+  isValidMaterialType
 };

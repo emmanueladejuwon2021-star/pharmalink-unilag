@@ -16,6 +16,7 @@ import VerificationSection from './components/VerificationSection';
 import AcademicSection from './components/AcademicSection';
 import ProfileSection from './components/ProfileSection';
 import FeedSection from './components/FeedSection';
+import MaterialsSection from './components/MaterialsSection';
 
 export default function App() {
   const [health, setHealth] = useState({
@@ -27,7 +28,7 @@ export default function App() {
 
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(() => localStorage.getItem('pharmalink_token') || null);
-  const [activeView, setActiveView] = useState('feed'); // 'feed' | 'verification' | 'levels' | 'profile'
+  const [activeView, setActiveView] = useState('feed'); // 'feed' | 'verification' | 'levels' | 'profile' | 'vault'
 
   useEffect(() => {
     fetch('/api/health')
@@ -191,7 +192,12 @@ export default function App() {
             <UserIcon />
             <span>Student Profile</span>
           </a>
-          <a href="#vault" className="nav-link" data-testid="nav-vault">
+          <a
+            href="#vault"
+            className={`nav-link ${activeView === 'vault' ? 'active' : ''}`}
+            onClick={(e) => { e.preventDefault(); setActiveView('vault'); }}
+            data-testid="nav-vault"
+          >
             <BookOpen />
             <span>Materials Vault</span>
           </a>
@@ -245,6 +251,14 @@ export default function App() {
                 />
               )}
 
+              {/* Materials Vault Section (EPIC-011 & EPIC-012) */}
+              {activeView === 'vault' && (
+                <MaterialsSection
+                  user={user}
+                  token={token}
+                />
+              )}
+
               {/* Feed & Default Dashboard View (EPIC-006 & EPIC-007) */}
               {activeView === 'feed' && (
                 <div>
@@ -279,6 +293,13 @@ export default function App() {
 
                     <div className="feature-grid">
                       <div className="feature-box">
+                        <h4>Materials Vault & Repository (EPIC-011 & 012)</h4>
+                        <p>
+                          Access verified pharmacy lecture notes, past questions, lab resources, and summary sheets across departments.
+                        </p>
+                      </div>
+
+                      <div className="feature-box">
                         <h4>Social Feed & Discussions (EPIC-006 & 007)</h4>
                         <p>
                           Join academic discussions, level-specific revision topics, lab reports, and official PANS announcements.
@@ -289,13 +310,6 @@ export default function App() {
                         <h4>User Profile & Directory (EPIC-005)</h4>
                         <p>
                           Manage your academic identity, department affiliation, research interests, and connect with peers across 200L–500L.
-                        </p>
-                      </div>
-
-                      <div className="feature-box">
-                        <h4>Academic Structure (EPIC-004)</h4>
-                        <p>
-                          Explore accredited curriculum across all 5 UNILAG Pharmacy departments (CPH, PCH, PCT, PCG, PCL) and active sessions.
                         </p>
                       </div>
 
