@@ -10,7 +10,13 @@ const {
   VERIFICATION_DOC_TYPES,
   DEPARTMENTS,
   SEMESTERS,
-  MATERIAL_TYPES
+  MATERIAL_TYPES,
+  SEARCH_TYPES,
+  NOTIFICATION_TYPES,
+  ANNOUNCEMENT_CATEGORIES,
+  ANNOUNCEMENT_PRIORITIES,
+  REPORT_CONTENT_TYPES,
+  REPORT_REASONS
 } = require('./index');
 
 /**
@@ -101,6 +107,54 @@ function isValidMaterialType(type) {
   return MATERIAL_TYPES.includes(type.trim());
 }
 
+/**
+ * Validate Search Type
+ */
+function isValidSearchType(type) {
+  if (!type || typeof type !== 'string') return false;
+  return SEARCH_TYPES.includes(type.trim().toLowerCase());
+}
+
+/**
+ * Validate Notification Type
+ */
+function isValidNotificationType(type) {
+  if (!type || typeof type !== 'string') return false;
+  return NOTIFICATION_TYPES.includes(type.trim().toLowerCase());
+}
+
+/**
+ * Validate Announcement Category
+ */
+function isValidAnnouncementCategory(category) {
+  if (!category || typeof category !== 'string') return false;
+  return ANNOUNCEMENT_CATEGORIES.includes(category.trim());
+}
+
+/**
+ * Validate Announcement Priority
+ */
+function isValidAnnouncementPriority(priority) {
+  if (!priority || typeof priority !== 'string') return false;
+  return ANNOUNCEMENT_PRIORITIES.includes(priority.trim().toLowerCase());
+}
+
+/**
+ * Validate Report Content Type
+ */
+function isValidReportContentType(type) {
+  if (!type || typeof type !== 'string') return false;
+  return REPORT_CONTENT_TYPES.includes(type.trim().toLowerCase());
+}
+
+/**
+ * Validate Report Reason
+ */
+function isValidReportReason(reason) {
+  if (!reason || typeof reason !== 'string') return false;
+  return REPORT_REASONS.includes(reason.trim().toLowerCase());
+}
+
 module.exports = {
   isValidUnilagEmail,
   isValidMatricNumber,
@@ -112,5 +166,11 @@ module.exports = {
   isValidSemester,
   isValidAcademicSession,
   isValidCourseCode,
-  isValidMaterialType
+  isValidMaterialType,
+  isValidSearchType,
+  isValidNotificationType,
+  isValidAnnouncementCategory,
+  isValidAnnouncementPriority,
+  isValidReportContentType,
+  isValidReportReason
 };

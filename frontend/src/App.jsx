@@ -9,7 +9,9 @@ import {
   User as UserIcon,
   GraduationCap,
   LogOut,
-  CheckCircle2
+  CheckCircle2,
+  Search,
+  ShieldAlert
 } from 'lucide-react';
 import AuthModal from './components/AuthModal';
 import VerificationSection from './components/VerificationSection';
@@ -17,6 +19,12 @@ import AcademicSection from './components/AcademicSection';
 import ProfileSection from './components/ProfileSection';
 import FeedSection from './components/FeedSection';
 import MaterialsSection from './components/MaterialsSection';
+import AnnouncementsSection from './components/AnnouncementsSection';
+import AdminConsole from './components/AdminConsole';
+import SearchModal from './components/SearchModal';
+import NotificationsModal from './components/NotificationsModal';
+import { fetchUnreadCount } from './api/notifications';
+import './App.css';
 
 export default function App() {
   const [health, setHealth] = useState({
@@ -28,13 +36,18 @@ export default function App() {
 
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(() => localStorage.getItem('pharmalink_token') || null);
-  const [activeView, setActiveView] = useState('feed'); // 'feed' | 'verification' | 'levels' | 'profile' | 'vault'
+  const [activeView, setActiveView] = useState('feed'); // 'feed' | 'verification' | 'levels' | 'profile' | 'vault' | 'pans' | 'admin'
+
+  // Modals
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [unreadNotifCount, setUnreadNotifCount] = useState(0);
 
   useEffect(() => {
     fetch('/api/health')
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
+        return res.json ? res.json() : {};
       })
       .then((data) => {
         setHealth({
@@ -70,6 +83,10 @@ export default function App() {
       })
       .then((data) => {
         setUser(data.user);
+        // Load initial unread notifications count
+        fetchUnreadCount({ token })
+          .then((nd) => setUnreadNotifCount(nd.unreadCount || 0))
+          .catch(() => {});
       })
       .catch(() => {
         localStorage.removeItem('pharmalink_token');
@@ -97,6 +114,8 @@ export default function App() {
     }
   };
 
+  const isStaff = user && (user.role === 'admin' || user.role === 'moderator');
+
   return (
     <div className="app-container" data-testid="pharmalink-app">
       {/* Header */}
@@ -111,31 +130,100 @@ export default function App() {
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           {user ? (
-            <div
-              className="user-badge"
-              data-testid="user-session-badge"
-              style={{ cursor: 'pointer' }}
-              onClick={() => setActiveView('profile')}
-              title="Click to view Profile & Student Directory"
-            >
-              <UserIcon size={14} />
-              <span><strong>{user.fullName}</strong> ({user.level})</span>
-              {user.verificationStatus === 'verified' && (
-                <span title="Verified Pharmacy Student" style={{ display: 'inline-flex', alignItems: 'center' }}>
-                  <CheckCircle2 size={13} color="var(--success)" />
-                </span>
-              )}
+            <>
+              {/* Global Search Button */}
               <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleLogout();
+                onClick={() => setIsSearchOpen(true)}
+                data-testid="header-search-btn"
+                className="action-btn"
+                title="Search (Posts, Vault, Students)"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: 'var(--surface-raised, rgba(255,255,255,0.06))',
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border)',
+                  fontSize: '12px',
+                  cursor: 'pointer'
                 }}
-                className="logout-btn"
-                title="Sign Out"
               >
-                <LogOut size={13} />
+                <Search size={14} />
+                <span className="search-hint">Search BD-Pharm</span>
               </button>
-            </div>
+
+              {/* Notifications Button */}
+              <button
+                onClick={() => setIsNotificationsOpen(true)}
+                data-testid="header-notifications-btn"
+                className="action-btn"
+                title="Notifications"
+                style={{
+                  position: 'relative',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: 'transparent',
+                  padding: '6px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border)',
+                  cursor: 'pointer'
+                }}
+              >
+                <Bell size={16} />
+                {unreadNotifCount > 0 && (
+                  <span
+                    data-testid="unread-badge"
+                    style={{
+                      position: 'absolute',
+                      top: '-4px',
+                      right: '-4px',
+                      background: 'var(--danger, #ef4444)',
+                      color: '#ffffff',
+                      fontSize: '10px',
+                      fontWeight: 700,
+                      borderRadius: '999px',
+                      padding: '1px 5px'
+                    }}
+                  >
+                    {unreadNotifCount}
+                  </span>
+                )}
+              </button>
+
+              {/* User Session Badge */}
+              <div
+                className="user-badge"
+                data-testid="user-session-badge"
+                style={{ cursor: 'pointer' }}
+                onClick={() => setActiveView('profile')}
+                title="Click to view Profile & Student Directory"
+              >
+                <UserIcon size={14} />
+                <span>
+                  <strong>{user.fullName}</strong> ({user.level})
+                </span>
+                {user.verificationStatus === 'verified' && (
+                  <span
+                    title="Verified Pharmacy Student"
+                    style={{ display: 'inline-flex', alignItems: 'center' }}
+                  >
+                    <CheckCircle2 size={13} color="var(--success)" />
+                  </span>
+                )}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleLogout();
+                  }}
+                  className="logout-btn"
+                  title="Sign Out"
+                >
+                  <LogOut size={13} />
+                </button>
+              </div>
+            </>
           ) : null}
 
           {health.status === 'online' ? (
@@ -159,7 +247,10 @@ export default function App() {
           <a
             href="#feed"
             className={`nav-link ${activeView === 'feed' ? 'active' : ''}`}
-            onClick={(e) => { e.preventDefault(); setActiveView('feed'); }}
+            onClick={(e) => {
+              e.preventDefault();
+              setActiveView('feed');
+            }}
             data-testid="nav-feed"
           >
             <Compass />
@@ -168,7 +259,10 @@ export default function App() {
           <a
             href="#verification"
             className={`nav-link ${activeView === 'verification' ? 'active' : ''}`}
-            onClick={(e) => { e.preventDefault(); setActiveView('verification'); }}
+            onClick={(e) => {
+              e.preventDefault();
+              setActiveView('verification');
+            }}
             data-testid="nav-verification"
           >
             <ShieldCheck />
@@ -177,7 +271,10 @@ export default function App() {
           <a
             href="#levels"
             className={`nav-link ${activeView === 'levels' ? 'active' : ''}`}
-            onClick={(e) => { e.preventDefault(); setActiveView('levels'); }}
+            onClick={(e) => {
+              e.preventDefault();
+              setActiveView('levels');
+            }}
             data-testid="nav-levels"
           >
             <GraduationCap />
@@ -186,7 +283,10 @@ export default function App() {
           <a
             href="#profile"
             className={`nav-link ${activeView === 'profile' ? 'active' : ''}`}
-            onClick={(e) => { e.preventDefault(); setActiveView('profile'); }}
+            onClick={(e) => {
+              e.preventDefault();
+              setActiveView('profile');
+            }}
             data-testid="nav-profile"
           >
             <UserIcon />
@@ -195,16 +295,42 @@ export default function App() {
           <a
             href="#vault"
             className={`nav-link ${activeView === 'vault' ? 'active' : ''}`}
-            onClick={(e) => { e.preventDefault(); setActiveView('vault'); }}
+            onClick={(e) => {
+              e.preventDefault();
+              setActiveView('vault');
+            }}
             data-testid="nav-vault"
           >
             <BookOpen />
             <span>Materials Vault</span>
           </a>
-          <a href="#pans" className="nav-link" data-testid="nav-pans">
+          <a
+            href="#pans"
+            className={`nav-link ${activeView === 'pans' ? 'active' : ''}`}
+            onClick={(e) => {
+              e.preventDefault();
+              setActiveView('pans');
+            }}
+            data-testid="nav-pans"
+          >
             <Bell />
             <span>PANS Official</span>
           </a>
+          {isStaff && (
+            <a
+              href="#admin"
+              className={`nav-link ${activeView === 'admin' ? 'active' : ''}`}
+              onClick={(e) => {
+                e.preventDefault();
+                setActiveView('admin');
+              }}
+              data-testid="nav-admin"
+              style={{ color: 'var(--accent, #eab308)' }}
+            >
+              <ShieldAlert />
+              <span>Admin Console</span>
+            </a>
+          )}
           <a href="#quizzes" className="nav-link" data-testid="nav-quizzes">
             <Layers />
             <span>Daily Dose Quizzes</span>
@@ -218,7 +344,8 @@ export default function App() {
         {/* Content */}
         <main className="main-content">
           <div className="notice-box">
-            <strong>Welcome to BD-Pharm:</strong> A dedicated, private academic and social network restricted strictly to verified 200L–500L Pharmacy students at the University of Lagos.
+            <strong>Welcome to BD-Pharm:</strong> A dedicated, private academic and social network
+            restricted strictly to verified 200L–500L Pharmacy students at the University of Lagos.
           </div>
 
           {!user ? (
@@ -235,12 +362,7 @@ export default function App() {
               )}
 
               {/* Academic Structure Section (EPIC-004) */}
-              {activeView === 'levels' && (
-                <AcademicSection
-                  user={user}
-                  token={token}
-                />
-              )}
+              {activeView === 'levels' && <AcademicSection user={user} token={token} />}
 
               {/* User Profile & Student Directory (EPIC-005) */}
               {activeView === 'profile' && (
@@ -252,20 +374,18 @@ export default function App() {
               )}
 
               {/* Materials Vault Section (EPIC-011 & EPIC-012) */}
-              {activeView === 'vault' && (
-                <MaterialsSection
-                  user={user}
-                  token={token}
-                />
-              )}
+              {activeView === 'vault' && <MaterialsSection user={user} token={token} />}
+
+              {/* Official PANS Announcements Section (EPIC-015) */}
+              {activeView === 'pans' && <AnnouncementsSection user={user} token={token} />}
+
+              {/* Admin Console & Verification Queue (EPIC-016 & EPIC-017) */}
+              {activeView === 'admin' && isStaff && <AdminConsole token={token} currentUser={user} />}
 
               {/* Feed & Default Dashboard View (EPIC-006 & EPIC-007) */}
               {activeView === 'feed' && (
                 <div>
-                  <FeedSection
-                    user={user}
-                    token={token}
-                  />
+                  <FeedSection user={user} token={token} />
 
                   <VerificationSection
                     user={user}
@@ -273,43 +393,42 @@ export default function App() {
                     onStatusUpdated={handleStatusUpdated}
                   />
 
-                  <AcademicSection
-                    user={user}
-                    token={token}
-                  />
+                  <AcademicSection user={user} token={token} />
 
                   <div className="card" data-testid="authenticated-dashboard">
                     <h2 className="card-title">Welcome back, {user.fullName}!</h2>
                     <p className="card-subtitle">
                       Academic Level: <strong>{user.level}</strong> &bull; Verification Status:{' '}
-                      <span style={{
-                        textTransform: 'uppercase',
-                        fontWeight: 600,
-                        color: user.verificationStatus === 'verified' ? 'var(--success)' : 'var(--accent)'
-                      }}>
+                      <span
+                        style={{
+                          textTransform: 'uppercase',
+                          fontWeight: 600,
+                          color: user.verificationStatus === 'verified' ? 'var(--success)' : 'var(--accent)'
+                        }}
+                      >
                         {user.verificationStatus}
                       </span>
                     </p>
 
                     <div className="feature-grid">
                       <div className="feature-box">
-                        <h4>Materials Vault & Repository (EPIC-011 & 012)</h4>
+                        <h4>PANS Announcements (EPIC-015)</h4>
                         <p>
-                          Access verified pharmacy lecture notes, past questions, lab resources, and summary sheets across departments.
+                          Stay informed with official faculty news, election circulars, and level representative updates.
                         </p>
                       </div>
 
                       <div className="feature-box">
-                        <h4>Social Feed & Discussions (EPIC-006 & 007)</h4>
+                        <h4>Global Search & Discovery (EPIC-013)</h4>
                         <p>
-                          Join academic discussions, level-specific revision topics, lab reports, and official PANS announcements.
+                          Instantly find lecture notes, past questions, and fellow pharmacy students across 200L to 500L.
                         </p>
                       </div>
 
                       <div className="feature-box">
-                        <h4>User Profile & Directory (EPIC-005)</h4>
+                        <h4>Materials Vault (EPIC-011 & 012)</h4>
                         <p>
-                          Manage your academic identity, department affiliation, research interests, and connect with peers across 200L–500L.
+                          Access verified pharmacy lecture notes, past questions, lab resources, and summary sheets.
                         </p>
                       </div>
 
@@ -328,6 +447,74 @@ export default function App() {
           )}
         </main>
       </div>
+
+      {/* Global Search Modal (EPIC-013) */}
+      <SearchModal
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+        token={token}
+        user={user}
+        onSelectPost={() => setActiveView('feed')}
+        onSelectMaterial={() => setActiveView('vault')}
+        onSelectStudent={() => setActiveView('profile')}
+      />
+
+      {/* Notifications Modal (EPIC-014) */}
+      <NotificationsModal
+        isOpen={isNotificationsOpen}
+        onClose={() => setIsNotificationsOpen(false)}
+        token={token}
+        onNotificationCountChange={(cnt) => setUnreadNotifCount(cnt)}
+      />
+
+      {/* Mobile Bottom Navigation Bar */}
+      {user && (
+        <nav className="mobile-nav" data-testid="mobile-nav">
+          <button
+            onClick={() => setActiveView('feed')}
+            className={`mobile-nav-link ${activeView === 'feed' ? 'active' : ''}`}
+            data-testid="mobile-nav-feed"
+          >
+            <Compass />
+            <span>Feed</span>
+          </button>
+          <button
+            onClick={() => setActiveView('vault')}
+            className={`mobile-nav-link ${activeView === 'vault' ? 'active' : ''}`}
+            data-testid="mobile-nav-vault"
+          >
+            <BookOpen />
+            <span>Vault</span>
+          </button>
+          <button
+            onClick={() => setActiveView('pans')}
+            className={`mobile-nav-link ${activeView === 'pans' ? 'active' : ''}`}
+            data-testid="mobile-nav-pans"
+          >
+            <Bell />
+            <span>PANS</span>
+          </button>
+          <button
+            onClick={() => setActiveView('profile')}
+            className={`mobile-nav-link ${activeView === 'profile' ? 'active' : ''}`}
+            data-testid="mobile-nav-profile"
+          >
+            <UserIcon />
+            <span>Profile</span>
+          </button>
+          {isStaff && (
+            <button
+              onClick={() => setActiveView('admin')}
+              className={`mobile-nav-link ${activeView === 'admin' ? 'active' : ''}`}
+              data-testid="mobile-nav-admin"
+              style={{ color: activeView === 'admin' ? 'var(--primary)' : 'var(--accent, #eab308)' }}
+            >
+              <ShieldAlert />
+              <span>Admin</span>
+            </button>
+          )}
+        </nav>
+      )}
 
       {/* Footer */}
       <footer className="app-footer">

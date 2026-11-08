@@ -3,7 +3,16 @@
  * Strict product boundaries and domain entities
  */
 
-const { MATERIAL_TYPES } = require('./constants');
+const {
+  MATERIAL_TYPES,
+  SEARCH_TYPES,
+  NOTIFICATION_TYPES,
+  ANNOUNCEMENT_CATEGORIES,
+  ANNOUNCEMENT_PRIORITIES,
+  REPORT_CONTENT_TYPES,
+  REPORT_REASONS,
+  REPORT_STATUSES
+} = require('./constants');
 
 // Eligible student academic levels in UNILAG Faculty of Pharmacy
 const ELIGIBLE_LEVELS = ['200L', '300L', '400L', '500L'];
@@ -100,8 +109,21 @@ module.exports = {
   FEED_SORT_OPTIONS,
   MATERIAL_CATEGORIES,
   MATERIAL_TYPES,
+  SEARCH_TYPES,
+  NOTIFICATION_TYPES,
+  ANNOUNCEMENT_CATEGORIES,
+  ANNOUNCEMENT_PRIORITIES,
+  REPORT_CONTENT_TYPES,
+  REPORT_REASONS,
+  REPORT_STATUSES,
   VERIFICATION_DOC_TYPES,
   DEPARTMENTS,
   SEMESTERS,
-  isValidMaterialType: (type) => require('./validation').isValidMaterialType(type)
+  isValidMaterialType: (type) => require('./validation').isValidMaterialType(type),
+  isValidSearchType: (type) => require('./validation').isValidSearchType(type),
+  isValidNotificationType: (type) => require('./validation').isValidNotificationType(type),
+  isValidAnnouncementCategory: (cat) => require('./validation').isValidAnnouncementCategory(cat),
+  isValidAnnouncementPriority: (prio) => require('./validation').isValidAnnouncementPriority(prio),
+  isValidReportContentType: (t) => require('./validation').isValidReportContentType(t),
+  isValidReportReason: (r) => require('./validation').isValidReportReason(r)
 };

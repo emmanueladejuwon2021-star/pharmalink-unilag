@@ -15,8 +15,10 @@ import {
   Bookmark,
   Hash,
   ShieldCheck,
-  Award
+  Award,
+  Flag
 } from 'lucide-react';
+import ReportModal from './ReportModal';
 import {
   fetchFeed,
   createPost,
@@ -94,6 +96,7 @@ export default function FeedSection({ user, token }) {
   const [loadingComments, setLoadingComments] = useState({});
   const [commentInputs, setCommentInputs] = useState({});
   const [submittingComment, setSubmittingComment] = useState({});
+  const [reportingPost, setReportingPost] = useState(null);
 
   const isVerified = user?.verificationStatus === 'verified';
   const canPin = user && ['admin', 'moderator', 'pans_exec'].includes(user.role);
@@ -826,6 +829,18 @@ export default function FeedSection({ user, token }) {
                   )}
 
                   {/* Edit/Delete for author or admin */}
+                  {/* Report content violation for non-author students */}
+                  {!post.isAuthor && (
+                    <button
+                      onClick={() => setReportingPost(post)}
+                      title="Report violation"
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '2px' }}
+                      data-testid={`report-post-${post._id}`}
+                    >
+                      <Flag size={13} />
+                    </button>
+                  )}
+
                   {(post.isAuthor || user?.role === 'admin') && (
                     <div style={{ display: 'flex', gap: '4px' }}>
                       {post.isAuthor && (
@@ -1131,6 +1146,18 @@ export default function FeedSection({ user, token }) {
             </div>
           ))}
         </div>
+      )}
+
+      {/* Report Modal (EPIC-017) */}
+      {reportingPost && (
+        <ReportModal
+          isOpen={Boolean(reportingPost)}
+          onClose={() => setReportingPost(null)}
+          contentType="post"
+          contentId={reportingPost._id}
+          token={token}
+          user={user}
+        />
       )}
 
       {/* Edit Post Modal */}

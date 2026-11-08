@@ -36,7 +36,7 @@ MERN stack (MongoDB, Express.js, React, Node.js).
 
 ## Project Status
 
-Foundation groundwork, student authentication, verification, academic structure management, user profiles & directory, social feed discussion engine, threaded peer comments, social engagement, peer connections, and Materials Vault document management have been built and tested.
+Foundation groundwork, student authentication, verification, academic structure management, user profiles & directory, social feed discussion engine, threaded peer comments, social engagement, peer connections, Materials Vault document management, global search & discovery, notifications engine, official PANS communication, administration dashboard, and content reporting & moderation have all been built, tested, and verified.
 
 ## How to Use This Repository
 
@@ -163,6 +163,36 @@ Verify API status by querying:
 - `PATCH /api/materials/:id` — Update material metadata (uploader or admin only)
 - `DELETE /api/materials/:id` — Soft-delete material (uploader or admin/moderator only; decrements uploader materials count)
 
+### Global Search & Discovery Endpoints (EPIC-013)
+- `GET /api/search` — Unified discovery engine querying across discussions, vault materials, and student directory with keyword matching, debouncing, type filtering (`all`, `posts`, `materials`, `students`), and level/department filters
+
+### Notifications Engine Endpoints (EPIC-014)
+- `GET /api/notifications` — Paginated in-app notification inbox with sender profile and contextual entity links
+- `GET /api/notifications/unread-count` — Rapid polling endpoint for real-time header badge counter
+- `PATCH /api/notifications/:id/read` — Mark individual notification as read
+- `POST /api/notifications/mark-all-read` — Bulk mark all unread notifications as read
+
+### Official PANS Communication Endpoints (EPIC-015)
+- `GET /api/announcements` — List official communiqués with pinned priority sorting, category filtering, and level targeting
+- `POST /api/announcements` — Publish official announcement (restricted to `pans_exec`, `level_rep`, and `admin`; dispatches automated student broadcast notifications)
+- `GET /api/announcements/:id` — View announcement details with atomic view counter increment
+- `POST /api/announcements/:id/pin` — Toggle pin status on announcements (`pans_exec`, `admin`)
+- `DELETE /api/announcements/:id` — Soft-delete announcement (author or admin)
+
+### Administration & Verification Queue Endpoints (EPIC-016)
+- `GET /api/admin/metrics` — Aggregate platform census (students, verified %, pending requests, discussions, materials, downloads, reports)
+- `GET /api/admin/verifications` — Student verification queue filtered by status and level (`admin`, `moderator`)
+- `POST /api/admin/verifications/:id/approve` — Approve student verification, unlock full community access, and award +10 bonus points
+- `POST /api/admin/verifications/:id/reject` — Reject verification with required feedback reason
+- `GET /api/admin/users` — Platform user management directory with search and role filters
+- `PATCH /api/admin/users/:id/role` — Assign student / staff roles (`student`, `level_rep`, `pans_exec`, `moderator`, `admin`)
+- `PATCH /api/admin/users/:id/suspend` — Toggle account suspension
+
+### Moderation & Content Reporting Endpoints (EPIC-017)
+- `POST /api/reports` — Submit content violation report across posts, comments, materials, or users (verified students only; anti-duplicate guard)
+- `GET /api/reports` — Moderation review queue (`admin`, `moderator`)
+- `PATCH /api/reports/:id/resolve` — Resolve or dismiss report with enforcement actions (`content_removed` with atomic author stat decrement, `user_suspended`)
+
 ## Master Feature Checklist
 
 All features start as **Not Started**. Status must be updated honestly as work progresses (Not Started → In Progress → Implemented → Tested → Verified in Production). A feature is never marked Implemented based on placeholders or mock data.
@@ -178,8 +208,8 @@ All features start as **Not Started**. Status must be updated honestly as work p
 - [x] **EPIC-008** — Comments and Discussions (Tested)
 - [x] **EPIC-011** — Materials Vault (Tested)
 - [x] **EPIC-012** — File Storage and Document Processing (Tested)
-- [ ] **EPIC-016** — Administration Dashboard
-- [ ] **EPIC-017** — Moderation and Reporting
+- [x] **EPIC-016** — Administration Dashboard (Tested)
+- [x] **EPIC-017** — Moderation and Reporting (Tested)
 - [ ] **EPIC-024** — Production Infrastructure and Quality Assurance
 
 ### High Priority
@@ -187,9 +217,9 @@ All features start as **Not Started**. Status must be updated honestly as work p
 - [x] **EPIC-005** — User Profiles and Identity (Tested)
 - [x] **EPIC-009** — Likes, Re-Links and Bookmarks (Tested)
 - [x] **EPIC-010** — Following and Social Connections (Tested)
-- [ ] **EPIC-013** — Global Search and Discovery
-- [ ] **EPIC-014** — Notifications
-- [ ] **EPIC-015** — Official PANS Communication
+- [x] **EPIC-013** — Global Search and Discovery (Tested)
+- [x] **EPIC-014** — Notifications (Tested)
+- [x] **EPIC-015** — Official PANS Communication (Tested)
 - [ ] **EPIC-022** — Analytics and Reporting
 
 ### Medium Priority

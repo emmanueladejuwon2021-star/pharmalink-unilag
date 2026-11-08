@@ -198,6 +198,123 @@ const mockComments = [
   }
 ];
 
+const mockNotifications = [
+  {
+    _id: 'notif-1',
+    user: 'u1',
+    type: 'like',
+    message: 'Babatunde Fashola liked your post "Pharmaceutics Physical Pharmacy Lab Report".',
+    isRead: false,
+    createdAt: new Date().toISOString()
+  },
+  {
+    _id: 'notif-2',
+    user: 'u1',
+    type: 'announcement',
+    message: 'PANS Academic Director published a new announcement: Faculty Mid-Semester Assessment Timetable.',
+    isRead: false,
+    createdAt: new Date().toISOString()
+  }
+];
+
+const mockAnnouncements = [
+  {
+    _id: 'ann-1',
+    title: 'Faculty Mid-Semester Assessment Timetable',
+    content: 'The official 2024/2025 mid-semester assessment timetable has been released for all pharmacy students.',
+    category: 'Academic',
+    priority: 'urgent',
+    targetLevels: ['All Levels'],
+    isPinned: true,
+    author: {
+      _id: 'u2',
+      fullName: 'PANS Academic Director'
+    },
+    officialRole: 'PANS Executive',
+    createdAt: new Date().toISOString()
+  },
+  {
+    _id: 'ann-2',
+    title: 'Annual PANS Health Week & Clinical Outreach',
+    content: 'Registration is open for student volunteers participating in the community pharmacy screening drive.',
+    category: 'Events',
+    priority: 'normal',
+    targetLevels: ['300L', '400L'],
+    isPinned: false,
+    author: {
+      _id: 'u2',
+      fullName: 'PANS Academic Director'
+    },
+    officialRole: 'PANS Executive',
+    createdAt: new Date().toISOString()
+  }
+];
+
+const mockAdminMetrics = {
+  totalStudents: 142,
+  verifiedStudents: 120,
+  unverifiedStudents: 22,
+  verificationRate: 85,
+  pendingVerifications: 3,
+  totalPosts: 48,
+  totalMaterials: 65,
+  pendingReports: 2
+};
+
+const mockVerificationRequests = [
+  {
+    _id: 'vr-1',
+    user: 's3',
+    fullName: 'Emeka Okafor',
+    matricNumber: '190805199',
+    level: '300L',
+    department: 'PCT',
+    documentType: 'unilag_id_card',
+    documentUrl: 'https://storage.unilag.edu.ng/verifications/emeka_id.jpg',
+    status: 'pending',
+    createdAt: new Date().toISOString()
+  }
+];
+
+const mockPlatformUsers = [
+  {
+    _id: 'u1',
+    fullName: 'Chioma Okeke',
+    email: 'cokeke@live.unilag.edu.ng',
+    matricNumber: '190805123',
+    level: '300L',
+    role: 'student',
+    verificationStatus: 'verified',
+    isSuspended: false
+  },
+  {
+    _id: 'u4',
+    fullName: 'Daniel Eze',
+    email: 'deze@live.unilag.edu.ng',
+    matricNumber: '190805130',
+    level: '400L',
+    role: 'student',
+    verificationStatus: 'verified',
+    isSuspended: false
+  }
+];
+
+const mockReports = [
+  {
+    _id: 'rep-1',
+    contentType: 'post',
+    contentId: 'p2',
+    reason: 'misinformation',
+    description: 'Post contains outdated pharmacology dosage equations.',
+    reporter: {
+      _id: 'u3',
+      fullName: 'Babatunde Fashola'
+    },
+    status: 'pending',
+    createdAt: new Date().toISOString()
+  }
+];
+
 function setupGlobalFetch(userOverrides = {}) {
   global.fetch = vi.fn().mockImplementation((url, options = {}) => {
     if (url.includes('/api/health')) {
@@ -488,6 +605,250 @@ function setupGlobalFetch(userOverrides = {}) {
         })
       });
     }
+    // EPIC-013: Global Search
+    if (url.includes('/api/search')) {
+      const urlObj = new URL(url, 'http://localhost');
+      const q = (urlObj.searchParams.get('q') || '').toLowerCase();
+      const type = urlObj.searchParams.get('type') || 'all';
+
+      let matchingPosts = mockPosts.filter(
+        (p) =>
+          p.title?.toLowerCase().includes(q) ||
+          p.content?.toLowerCase().includes(q) ||
+          (p.tags && p.tags.some((t) => t.toLowerCase().includes(q)))
+      );
+      let matchingMaterials = mockMaterials.filter(
+        (m) =>
+          m.title.toLowerCase().includes(q) ||
+          m.courseCode.toLowerCase().includes(q) ||
+          m.description.toLowerCase().includes(q)
+      );
+      let matchingStudents = mockPeerStudents.filter(
+        (s) =>
+          s.fullName.toLowerCase().includes(q) ||
+          s.matricNumber.toLowerCase().includes(q) ||
+          s.department.toLowerCase().includes(q)
+      );
+
+      if (!q) {
+        matchingPosts = [];
+        matchingMaterials = [];
+        matchingStudents = [];
+      }
+
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          success: true,
+          query: q,
+          results: {
+            posts: type === 'materials' || type === 'students' ? [] : matchingPosts,
+            materials: type === 'posts' || type === 'students' ? [] : matchingMaterials,
+            students: type === 'posts' || type === 'materials' ? [] : matchingStudents
+          },
+          counts: {
+            total: matchingPosts.length + matchingMaterials.length + matchingStudents.length,
+            posts: matchingPosts.length,
+            materials: matchingMaterials.length,
+            students: matchingStudents.length
+          }
+        })
+      });
+    }
+
+    // EPIC-014: Notifications System
+    if (url.includes('/api/notifications/unread-count')) {
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          success: true,
+          unreadCount: 2
+        })
+      });
+    }
+    if (url.includes('/api/notifications/mark-all-read')) {
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          success: true,
+          message: 'All notifications marked as read'
+        })
+      });
+    }
+    if (url.match(/\/api\/notifications\/[^/]+\/read/)) {
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          success: true,
+          notification: { _id: 'notif-1', isRead: true },
+          unreadCount: 1
+        })
+      });
+    }
+    if (url.includes('/api/notifications')) {
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          success: true,
+          notifications: JSON.parse(JSON.stringify(mockNotifications)),
+          unreadCount: 2,
+          pagination: { page: 1, limit: 20, total: mockNotifications.length, totalPages: 1 }
+        })
+      });
+    }
+
+    // EPIC-015: PANS Official Announcements
+    if (url.match(/\/api\/announcements\/[^/]+\/pin/)) {
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          success: true,
+          message: 'Announcement pinned status updated',
+          announcement: { ...mockAnnouncements[0], isPinned: !mockAnnouncements[0].isPinned }
+        })
+      });
+    }
+    if (url.includes('/api/announcements') && options.method === 'POST') {
+      const body = options.body ? JSON.parse(options.body) : {};
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          success: true,
+          announcement: {
+            _id: 'ann-3',
+            title: body.title || 'New Announcement',
+            content: body.content || '',
+            category: body.category || 'General',
+            priority: body.priority || 'normal',
+            targetLevels: body.targetLevels || ['All Levels'],
+            isPinned: false,
+            author: { _id: 'u1', fullName: 'Chioma Okeke' },
+            officialRole: 'PANS Executive',
+            createdAt: new Date().toISOString()
+          }
+        })
+      });
+    }
+    if (url.includes('/api/announcements')) {
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          success: true,
+          announcements: JSON.parse(JSON.stringify(mockAnnouncements)),
+          count: mockAnnouncements.length
+        })
+      });
+    }
+
+    // EPIC-016: Admin Metrics, Users & Verifications
+    if (url.includes('/api/admin/metrics')) {
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          success: true,
+          metrics: mockAdminMetrics
+        })
+      });
+    }
+    if (url.match(/\/api\/admin\/verifications\/[^/]+\/approve/)) {
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          success: true,
+          message: 'Student verification request approved successfully.'
+        })
+      });
+    }
+    if (url.match(/\/api\/admin\/verifications\/[^/]+\/reject/)) {
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          success: true,
+          message: 'Student verification request rejected.'
+        })
+      });
+    }
+    if (url.includes('/api/admin/verifications')) {
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          success: true,
+          requests: JSON.parse(JSON.stringify(mockVerificationRequests))
+        })
+      });
+    }
+    if (url.match(/\/api\/admin\/users\/[^/]+\/role/)) {
+      const body = options.body ? JSON.parse(options.body) : {};
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          success: true,
+          user: { _id: 'u4', role: body.role || 'moderator' }
+        })
+      });
+    }
+    if (url.match(/\/api\/admin\/users\/[^/]+\/suspend/)) {
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          success: true,
+          isSuspended: true,
+          message: 'User suspension toggled.'
+        })
+      });
+    }
+    if (url.includes('/api/admin/users')) {
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          success: true,
+          users: JSON.parse(JSON.stringify(mockPlatformUsers)),
+          count: mockPlatformUsers.length
+        })
+      });
+    }
+
+    // EPIC-017: Moderation Reports & Resolution
+    if (url.match(/\/api\/reports\/[^/]+\/resolve/)) {
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          success: true,
+          message: 'Report resolved successfully.',
+          report: { _id: 'rep-1', status: 'resolved' }
+        })
+      });
+    }
+    if (url.includes('/api/reports') && options.method === 'POST') {
+      const body = options.body ? JSON.parse(options.body) : {};
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          success: true,
+          message: 'Thank you. Your report has been submitted to the moderation team.',
+          report: {
+            _id: 'rep-2',
+            contentType: body.contentType || 'post',
+            contentId: body.contentId || 'p1',
+            reason: body.reason || 'misinformation',
+            description: body.description || '',
+            status: 'pending',
+            createdAt: new Date().toISOString()
+          }
+        })
+      });
+    }
+    if (url.includes('/api/reports')) {
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          success: true,
+          reports: JSON.parse(JSON.stringify(mockReports)),
+          count: mockReports.length
+        })
+      });
+    }
+
     return Promise.reject(new Error(`Unknown url: ${url}`));
   });
 }
@@ -1092,3 +1453,269 @@ describe('EPIC-011 & EPIC-012: Materials Vault & Document Storage', () => {
     });
   });
 });
+
+describe('EPIC-013: Global Search and Discovery', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    localStorage.clear();
+    localStorage.setItem('pharmalink_token', 'mock-token');
+  });
+
+  it('opens search modal, queries across discussions/materials/students, and selects result', async () => {
+    setupGlobalFetch({ verificationStatus: 'verified' });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('header-search-btn')).toBeInTheDocument();
+    });
+
+    // Open Search modal
+    fireEvent.click(screen.getByTestId('header-search-btn'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('global-search-input')).toBeInTheDocument();
+      expect(screen.getByText(/All Results/i)).toBeInTheDocument();
+    });
+
+    // Type query "Pharmaceutics"
+    fireEvent.change(screen.getByTestId('global-search-input'), {
+      target: { value: 'Pharmaceutics' }
+    });
+
+    // Verify results appear after debounce
+    const postResult = await screen.findByTestId('search-result-post-p1', {}, { timeout: 4000 });
+    expect(postResult).toBeInTheDocument();
+
+    // Switch to Discussions tab
+    const discussionsTab = screen.getByRole('button', { name: /Discussions/i });
+    fireEvent.click(discussionsTab);
+
+    // Wait for filtered discussions tab result to be present
+    const postInTab = await screen.findByTestId('search-result-post-p1', {}, { timeout: 4000 });
+    expect(postInTab).toBeInTheDocument();
+
+    // Select the post item
+    fireEvent.click(postInTab);
+
+    // Modal closes
+    await waitFor(() => {
+      expect(screen.queryByTestId('global-search-input')).not.toBeInTheDocument();
+    });
+  });
+});
+
+describe('EPIC-014: Notifications System', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    localStorage.clear();
+    localStorage.setItem('pharmalink_token', 'mock-token');
+  });
+
+  it('renders unread badge, opens notifications modal, lists notices, and marks as read', async () => {
+    setupGlobalFetch({ verificationStatus: 'verified' });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('header-notifications-btn')).toBeInTheDocument();
+      expect(screen.getByTestId('unread-badge')).toHaveTextContent('2');
+    });
+
+    // Open notifications modal
+    fireEvent.click(screen.getByTestId('header-notifications-btn'));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Notifications/i)).toBeInTheDocument();
+      expect(screen.getByText(/Babatunde Fashola liked your post/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/PANS Academic Director published a new announcement/i)
+      ).toBeInTheDocument();
+    });
+
+    // Click on unread notification to mark as read
+    fireEvent.click(screen.getByText(/Babatunde Fashola liked your post/i));
+
+    // Verify mark all read button is also functional
+    const markAllBtn = screen.queryByRole('button', { name: /Mark all read/i });
+    if (markAllBtn) {
+      fireEvent.click(markAllBtn);
+    }
+
+    await waitFor(() => {
+      expect(screen.getByText(/Notifications/i)).toBeInTheDocument();
+    });
+  });
+});
+
+describe('EPIC-015: Official PANS Communication & Announcements', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    localStorage.clear();
+    localStorage.setItem('pharmalink_token', 'mock-token');
+  });
+
+  it('navigates to PANS Official section and views pinned announcements', async () => {
+    setupGlobalFetch({ verificationStatus: 'verified' });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('nav-pans')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId('nav-pans'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Official PANS Announcements')).toBeInTheDocument();
+      expect(screen.getByText('Faculty Mid-Semester Assessment Timetable')).toBeInTheDocument();
+      expect(screen.getByText('PINNED')).toBeInTheDocument();
+      expect(screen.getByText('Annual PANS Health Week & Clinical Outreach')).toBeInTheDocument();
+    });
+  });
+
+  it('allows authorized executive/admin to open notice creation modal', async () => {
+    setupGlobalFetch({ role: 'pans_exec', verificationStatus: 'verified' });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('nav-pans')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId('nav-pans'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('create-announcement-btn')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId('create-announcement-btn'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Publish Official Announcement')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText(/Mandatory Faculty General Meeting/i)).toBeInTheDocument();
+    });
+  });
+});
+
+describe('EPIC-016: Administration Dashboard & Verification Queue', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    localStorage.clear();
+    localStorage.setItem('pharmalink_token', 'mock-token');
+  });
+
+  it('renders admin console with platform metrics and allows approving student verification', async () => {
+    setupGlobalFetch({ role: 'admin', verificationStatus: 'verified' });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('nav-admin')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId('nav-admin'));
+
+    await waitFor(() => {
+      expect(screen.getByText('BD-Pharm Administration & Governance')).toBeInTheDocument();
+      expect(screen.getByText('TOTAL STUDENTS')).toBeInTheDocument();
+      expect(screen.getByText('142')).toBeInTheDocument();
+      expect(screen.getByText('85% Verified')).toBeInTheDocument();
+      expect(screen.getByText('PENDING VERIFICATIONS')).toBeInTheDocument();
+    });
+
+    // Verification Queue tab
+    await waitFor(() => {
+      expect(screen.getByText('Emeka Okafor')).toBeInTheDocument();
+      expect(screen.getByText('190805199')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Approve/i })).toBeInTheDocument();
+    });
+
+    // Approve verification
+    fireEvent.click(screen.getByRole('button', { name: /Approve/i }));
+
+    await waitFor(() => {
+      expect(screen.queryByText('Emeka Okafor')).not.toBeInTheDocument();
+    });
+  });
+});
+
+describe('EPIC-017: Moderation and Content Reporting System', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    localStorage.clear();
+    localStorage.setItem('pharmalink_token', 'mock-token');
+  });
+
+  it('allows verified student to report violation on a post and displays confirmation', async () => {
+    setupGlobalFetch({ verificationStatus: 'verified' });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('feed-section')).toBeInTheDocument();
+      expect(screen.getByTestId('report-post-p2')).toBeInTheDocument();
+    });
+
+    // Open Report Modal for post p2
+    fireEvent.click(screen.getByTestId('report-post-p2'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('report-modal')).toBeInTheDocument();
+      expect(screen.getByTestId('report-reason-select')).toBeInTheDocument();
+      expect(screen.getByTestId('report-description-input')).toBeInTheDocument();
+    });
+
+    // Fill form
+    fireEvent.change(screen.getByTestId('report-reason-select'), {
+      target: { value: 'misinformation' }
+    });
+    fireEvent.change(screen.getByTestId('report-description-input'), {
+      target: { value: 'Inaccurate clinical dosage guidelines in this post.' }
+    });
+
+    // Submit report
+    fireEvent.click(screen.getByTestId('submit-report-btn'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('report-success-msg')).toHaveTextContent(
+        /Your report has been submitted to the moderation team/i
+      );
+    });
+  });
+
+  it('allows administrator to view and resolve moderation reports in Admin Console', async () => {
+    setupGlobalFetch({ role: 'admin', verificationStatus: 'verified' });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('nav-admin')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId('nav-admin'));
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Moderation Reports/i })).toBeInTheDocument();
+    });
+
+    // Switch to Moderation Reports tab
+    fireEvent.click(screen.getByRole('button', { name: /Moderation Reports/i }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/Post contains outdated pharmacology dosage equations/i)
+      ).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Dismiss/i })).toBeInTheDocument();
+    });
+
+    // Dismiss report
+    fireEvent.click(screen.getByRole('button', { name: /Dismiss/i }));
+
+    await waitFor(() => {
+      expect(
+        screen.queryByText(/Post contains outdated pharmacology dosage equations/i)
+      ).not.toBeInTheDocument();
+    });
+  });
+  });
