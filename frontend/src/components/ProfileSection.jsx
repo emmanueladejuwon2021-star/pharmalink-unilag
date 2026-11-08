@@ -9,12 +9,15 @@ import {
   Layers,
   AlertCircle,
   ExternalLink,
-  Users
+  Users,
+  UserPlus,
+  UserCheck
 } from 'lucide-react';
 import {
   getMyProfile,
   updateMyProfile,
-  listStudentDirectory
+  listStudentDirectory,
+  toggleFollowUser
 } from '../api/profile';
 
 const DEPARTMENTS = [
@@ -35,6 +38,7 @@ export default function ProfileSection({ user, token, onProfileUpdated }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [successMsg, setSuccessMsg] = useState(null);
+  const [togglingFollow, setTogglingFollow] = useState({});
 
   // Edit form state
   const [formData, setFormData] = useState({
@@ -51,6 +55,16 @@ export default function ProfileSection({ user, token, onProfileUpdated }) {
   const [dirLevel, setDirLevel] = useState('all');
   const [dirDept, setDirDept] = useState('all');
   const [dirSearch, setDirSearch] = useState('');
+
+  const isVerified = Boolean(
+    profile?.verificationStatus === 'verified' ||
+    user?.verificationStatus === 'verified' ||
+    user?.role === 'admin' ||
+    profile?.role === 'admin'
+  );
+
+  const currentUserId = profile?._id || user?._id;
+  const currentMatric = profile?.matricNumber || user?.matricNumber;
 
   const loadProfile = async () => {
     try {
@@ -136,6 +150,70 @@ export default function ProfileSection({ user, token, onProfileUpdated }) {
     }
   };
 
+  const handleToggleFollow = async (targetStudent) => {
+    if (!isVerified) {
+      setError('Student verification is required to follow peers.');
+      return;
+    }
+    try {
+      setTogglingFollow((prev) => ({ ...prev, [targetStudent._id]: true }));
+      setError(null);
+      const res = await toggleFollowUser(token, targetStudent._id);
+      const newFollowingStatus = res.isFollowing !== undefined ? res.isFollowing : !targetStudent.isFollowing;
+
+      setDirectory((prev) =>
+        prev.map((s) => {
+          if (s._id === targetStudent._id) {
+            const currentFollowers = s.followersCount !== undefined
+              ? s.followersCount
+              : (s.stats?.followersCount || 0);
+            const currentFollowing = s.followingCount !== undefined
+              ? s.followingCount
+              : (s.stats?.followingCount || 0);
+
+            const delta = newFollowingStatus ? 1 : -1;
+            const updatedFollowers = Math.max(0, currentFollowers + delta);
+
+            return {
+              ...s,
+              isFollowing: newFollowingStatus,
+              followersCount: updatedFollowers,
+              followingCount: currentFollowing,
+              stats: {
+                ...(s.stats || {}),
+                followersCount: updatedFollowers,
+                followingCount: currentFollowing
+              }
+            };
+          }
+          return s;
+        })
+      );
+
+      setProfile((prev) => {
+        if (!prev) return prev;
+        const currentStats = prev.stats || {};
+        const currentFollowing = currentStats.followingCount !== undefined
+          ? currentStats.followingCount
+          : (prev.followingCount || 0);
+        const delta = newFollowingStatus ? 1 : -1;
+        const updatedFollowing = Math.max(0, currentFollowing + delta);
+        return {
+          ...prev,
+          followingCount: updatedFollowing,
+          stats: {
+            ...currentStats,
+            followingCount: updatedFollowing
+          }
+        };
+      });
+    } catch (err) {
+      setError(err.message || 'Failed to update follow status.');
+    } finally {
+      setTogglingFollow((prev) => ({ ...prev, [targetStudent._id]: false }));
+    }
+  };
+
   const getInitials = (name) => {
     if (!name) return 'UN';
     return name
@@ -149,7 +227,7 @@ export default function ProfileSection({ user, token, onProfileUpdated }) {
   return (
     <div className="card" data-testid="profile-section">
       {/* Header and Tabs */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
         <div>
           <h2 className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <UserIcon size={20} color="var(--primary)" />
@@ -179,14 +257,14 @@ export default function ProfileSection({ user, token, onProfileUpdated }) {
       </div>
 
       {error ? (
-        <div className="alert-box error" data-testid="profile-error">
+        <div className="alert-box error" data-testid="profile-error" style={{ marginBottom: '16px' }}>
           <AlertCircle size={16} />
           <span>{error}</span>
         </div>
       ) : null}
 
       {successMsg ? (
-        <div className="alert-box" style={{ background: '#ecfdf5', color: '#065f46', border: '1px solid #a7f3d0' }}>
+        <div className="alert-box" style={{ background: '#ecfdf5', color: '#065f46', border: '1px solid #a7f3d0', marginBottom: '16px' }}>
           <CheckCircle2 size={16} />
           <span>{successMsg}</span>
         </div>
@@ -304,8 +382,8 @@ export default function ProfileSection({ user, token, onProfileUpdated }) {
             </div>
           </div>
 
-          {/* Activity / Reputation Stats */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginTop: '16px' }}>
+          {/* Activity, Reputation & Social Follow Stats */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '12px', marginTop: '16px' }}>
             <div className="feature-box" style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--primary)' }}>
                 {profile?.stats?.postsCount || 0}
@@ -320,9 +398,21 @@ export default function ProfileSection({ user, token, onProfileUpdated }) {
             </div>
             <div className="feature-box" style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--accent)' }}>
-                {profile?.stats?.reputationPoints || 10}
+                {profile?.stats?.reputationPoints !== undefined ? profile.stats.reputationPoints : 10}
               </div>
               <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Reputation Points</div>
+            </div>
+            <div className="feature-box" style={{ textAlign: 'center' }} data-testid="profile-stat-followers">
+              <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--primary)' }}>
+                {profile?.stats?.followersCount !== undefined ? profile.stats.followersCount : (profile?.followersCount || 0)}
+              </div>
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Followers</div>
+            </div>
+            <div className="feature-box" style={{ textAlign: 'center' }} data-testid="profile-stat-following">
+              <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--secondary)' }}>
+                {profile?.stats?.followingCount !== undefined ? profile.stats.followingCount : (profile?.followingCount || 0)}
+              </div>
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Following</div>
             </div>
           </div>
 
@@ -404,6 +494,29 @@ export default function ProfileSection({ user, token, onProfileUpdated }) {
       ) : (
         /* Tab 2: Student Directory */
         <div data-testid="student-directory-view">
+          {/* Unverified Warning Banner */}
+          {!isVerified && (
+            <div
+              className="alert-box"
+              style={{
+                marginBottom: '16px',
+                background: '#fffbeb',
+                border: '1px solid #fde68a',
+                color: '#92400e',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '10px 12px',
+                borderRadius: '6px',
+                fontSize: '12px'
+              }}
+              data-testid="unverified-follow-banner"
+            >
+              <AlertCircle size={15} color="#b45309" />
+              <span>Student verification is required to follow peers.</span>
+            </div>
+          )}
+
           {/* Filters Bar */}
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '16px', background: '#f8fafc', padding: '10px', borderRadius: '6px' }}>
             <div style={{ display: 'flex', gap: '4px' }}>
@@ -464,61 +577,134 @@ export default function ProfileSection({ user, token, onProfileUpdated }) {
             </div>
           ) : (
             <div className="feature-grid" style={{ marginTop: 0 }} data-testid="directory-grid">
-              {directory.map((student) => (
-                <div key={student._id} className="feature-box" data-testid={`student-card-${student.matricNumber}`}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              {directory.map((student) => {
+                const isSelf = Boolean(
+                  (currentUserId && student._id === currentUserId) ||
+                  (currentMatric && student.matricNumber === currentMatric)
+                );
+                const followers = student.followersCount !== undefined
+                  ? student.followersCount
+                  : (student.stats?.followersCount || 0);
+                const following = student.followingCount !== undefined
+                  ? student.followingCount
+                  : (student.stats?.followingCount || 0);
+
+                return (
+                  <div key={student._id} className="feature-box" data-testid={`student-card-${student.matricNumber}`}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1 }}>
+                        <div
+                          style={{
+                            width: '40px',
+                            height: '40px',
+                            borderRadius: '50%',
+                            background: 'var(--primary)',
+                            color: '#fff',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '14px',
+                            fontWeight: 700
+                          }}
+                        >
+                          {getInitials(student.fullName)}
+                        </div>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <strong style={{ fontSize: '13px' }}>{student.fullName}</strong>
+                            {student.verificationStatus === 'verified' && (
+                              <CheckCircle2 size={13} color="var(--success)" />
+                            )}
+                          </div>
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                            {student.level} &bull; Matric: {student.matricNumber}
+                          </div>
+                        </div>
+                      </div>
+
+                      {!isSelf && (
+                        <button
+                          type="button"
+                          onClick={() => handleToggleFollow(student)}
+                          className={`auth-tab-btn ${student.isFollowing ? 'active' : ''}`}
+                          style={{
+                            padding: '4px 10px',
+                            fontSize: '11px',
+                            fontWeight: 600,
+                            borderRadius: '4px',
+                            background: student.isFollowing ? 'var(--primary)' : '#fff',
+                            color: student.isFollowing ? '#fff' : 'var(--primary)',
+                            border: '1px solid var(--primary)',
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            whiteSpace: 'nowrap'
+                          }}
+                          data-testid={`follow-btn-${student._id}`}
+                          disabled={togglingFollow[student._id]}
+                        >
+                          {student.isFollowing ? (
+                            <>
+                              <UserCheck size={12} />
+                              Following
+                            </>
+                          ) : (
+                            <>
+                              <UserPlus size={12} />
+                              Follow
+                            </>
+                          )}
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Social connections followers / following stats */}
                     <div
                       style={{
-                        width: '40px',
-                        height: '40px',
-                        borderRadius: '50%',
-                        background: 'var(--primary)',
-                        color: '#fff',
                         display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '14px',
-                        fontWeight: 700
+                        gap: '12px',
+                        fontSize: '11px',
+                        color: 'var(--text-muted)',
+                        marginTop: '8px',
+                        padding: '4px 0',
+                        borderTop: '1px solid #f1f5f9',
+                        borderBottom: '1px solid #f1f5f9'
                       }}
+                      data-testid={`student-stats-${student._id}`}
                     >
-                      {getInitials(student.fullName)}
+                      <span data-testid={`followers-count-${student._id}`}>
+                        <strong style={{ color: 'var(--text-main)' }}>{followers}</strong> Followers
+                      </span>
+                      <span data-testid={`following-count-${student._id}`}>
+                        <strong style={{ color: 'var(--text-main)' }}>{following}</strong> Following
+                      </span>
                     </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <strong style={{ fontSize: '13px' }}>{student.fullName}</strong>
-                        {student.verificationStatus === 'verified' && (
-                          <CheckCircle2 size={13} color="var(--success)" />
-                        )}
+
+                    {student.department ? (
+                      <div style={{ fontSize: '11px', color: 'var(--primary)', fontWeight: 600, marginTop: '6px' }}>
+                        {student.department}
                       </div>
-                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                        {student.level} &bull; Matric: {student.matricNumber}
+                    ) : null}
+
+                    {student.bio ? (
+                      <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', lineHeight: 1.3 }}>
+                        {student.bio}
+                      </p>
+                    ) : null}
+
+                    {student.interests && student.interests.length > 0 ? (
+                      <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '6px' }}>
+                        {student.interests.slice(0, 3).map((item, idx) => (
+                          <span key={idx} style={{ fontSize: '10px', background: '#f1f5f9', padding: '1px 5px', borderRadius: '3px' }}>
+                            #{item}
+                          </span>
+                        ))}
                       </div>
-                    </div>
+                    ) : null}
                   </div>
-
-                  {student.department ? (
-                    <div style={{ fontSize: '11px', color: 'var(--primary)', fontWeight: 600, marginTop: '6px' }}>
-                      {student.department}
-                    </div>
-                  ) : null}
-
-                  {student.bio ? (
-                    <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', lineHeight: 1.3 }}>
-                      {student.bio}
-                    </p>
-                  ) : null}
-
-                  {student.interests && student.interests.length > 0 ? (
-                    <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '6px' }}>
-                      {student.interests.slice(0, 3).map((item, idx) => (
-                        <span key={idx} style={{ fontSize: '10px', background: '#f1f5f9', padding: '1px 5px', borderRadius: '3px' }}>
-                          #{item}
-                        </span>
-                      ))}
-                    </div>
-                  ) : null}
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

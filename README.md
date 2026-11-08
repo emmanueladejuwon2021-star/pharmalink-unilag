@@ -148,6 +148,13 @@ Verify API status by querying:
 - `POST /api/posts/:id/bookmark` — Toggle bookmarking a post for personal reference
 - `GET /api/bookmarks` — Retrieve student's saved bookmarked posts
 
+### Social Following and Peer Connections Endpoints (EPIC-010)
+- `POST /api/profile/:id/follow` — Toggle follow/unfollow a peer student (verified students only; atomic followingCount/followersCount updates and +1 reputation point awarded to follower)
+- `GET /api/profile/:id/followers` — Retrieve followers of a student, populated with safe profile attributes
+- `GET /api/profile/:id/following` — Retrieve peers followed by a student
+- `GET /api/profile/:id/follow-status` — Retrieve follow relationship status (`isFollowing: Boolean`) relative to authenticated student
+- `GET /api/profile/directory/students` — Faculty Student Directory decorated with `isFollowing: Boolean` for each peer relative to authenticated student
+
 ## Master Feature Checklist
 
 All features start as **Not Started**. Status must be updated honestly as work progresses (Not Started → In Progress → Implemented → Tested → Verified in Production). A feature is never marked Implemented based on placeholders or mock data.
@@ -171,7 +178,7 @@ All features start as **Not Started**. Status must be updated honestly as work p
 
 - [x] **EPIC-005** — User Profiles and Identity (Tested)
 - [x] **EPIC-009** — Likes, Re-Links and Bookmarks (Tested)
-- [ ] **EPIC-010** — Following and Social Connections
+- [x] **EPIC-010** — Following and Social Connections (Tested)
 - [ ] **EPIC-013** — Global Search and Discovery
 - [ ] **EPIC-014** — Notifications
 - [ ] **EPIC-015** — Official PANS Communication

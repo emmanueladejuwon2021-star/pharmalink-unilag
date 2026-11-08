@@ -1,4 +1,6 @@
+const mongoose = require('mongoose');
 const User = require('../models/User');
+const Follow = require('../models/Follow');
 const {
   ELIGIBLE_LEVELS,
   isValidDepartmentCode,
@@ -97,6 +99,14 @@ async function updateMyProfile(req, res, next) {
 async function getUserProfile(req, res, next) {
   try {
     const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid student ID format.'
+      });
+    }
+
     const user = await User.findById(id);
 
     if (!user) {
@@ -106,9 +116,19 @@ async function getUserProfile(req, res, next) {
       });
     }
 
+    const profile = user.toPublicProfile();
+
+    if (req.user) {
+      const isFollowing = await Follow.exists({
+        follower: req.user._id,
+        following: user._id
+      });
+      profile.isFollowing = Boolean(isFollowing);
+    }
+
     return res.status(200).json({
       success: true,
-      profile: user.toPublicProfile()
+      profile
     });
   } catch (error) {
     next(error);
@@ -154,6 +174,20 @@ async function listStudentDirectory(req, res, next) {
     ]);
 
     const publicProfiles = students.map((s) => s.toPublicProfile());
+
+    // Decorate directory entries with isFollowing relative to authenticated student
+    if (req.user) {
+      const studentIds = students.map((s) => s._id);
+      const follows = await Follow.find({
+        follower: req.user._id,
+        following: { $in: studentIds }
+      });
+      const followingIds = new Set(follows.map((f) => f.following.toString()));
+
+      publicProfiles.forEach((p) => {
+        p.isFollowing = followingIds.has(p._id.toString());
+      });
+    }
 
     return res.status(200).json({
       success: true,
