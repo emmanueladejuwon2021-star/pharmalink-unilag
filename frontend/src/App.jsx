@@ -74,6 +74,16 @@ export default function App() {
       return;
     }
 
+    if (token.startsWith('demo-')) {
+      const stored = localStorage.getItem('pharmalink_user');
+      if (stored) {
+        try {
+          setUser(JSON.parse(stored));
+        } catch (_) {}
+      }
+      return;
+    }
+
     fetch('/api/auth/me', {
       headers: { Authorization: `Bearer ${token}` }
     })
@@ -97,12 +107,16 @@ export default function App() {
 
   const handleAuthSuccess = (newToken, newUser) => {
     localStorage.setItem('pharmalink_token', newToken);
+    if (newUser) {
+      localStorage.setItem('pharmalink_user', JSON.stringify(newUser));
+    }
     setToken(newToken);
     setUser(newUser);
   };
 
   const handleLogout = () => {
     localStorage.removeItem('pharmalink_token');
+    localStorage.removeItem('pharmalink_user');
     setToken(null);
     setUser(null);
     setActiveView('feed');

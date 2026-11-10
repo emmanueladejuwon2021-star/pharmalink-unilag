@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { UserPlus, LogIn, AlertCircle } from 'lucide-react';
+import { UserPlus, LogIn, AlertCircle, Sparkles } from 'lucide-react';
 
 export default function AuthModal({ onAuthSuccess }) {
   const [mode, setMode] = useState('login'); // 'login' or 'register'
@@ -210,6 +210,52 @@ export default function AuthModal({ onAuthSuccess }) {
           {loading ? 'Processing...' : mode === 'login' ? 'Sign In' : 'Create Account'}
         </button>
       </form>
+
+      {/* GitHub Pages 1-Click UI Preview Bar */}
+      <div style={{ marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid var(--border)' }}>
+        <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '0.6rem', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
+          <Sparkles size={14} color="var(--accent)" />
+          <strong>Testing UI on GitHub Pages?</strong> Instant demo profiles:
+        </p>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            className="submit-button"
+            style={{ flex: 1, minWidth: '140px', background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-main)', fontSize: '0.8rem', padding: '0.55rem 0.6rem' }}
+            onClick={() => onAuthSuccess('demo-student-token', {
+              _id: 'demo-student-01',
+              fullName: 'Chidi Okafor (Demo Student)',
+              email: 'chidi.okafor@live.unilag.edu.ng',
+              matricNumber: '190805501',
+              level: '400L',
+              department: 'PCL',
+              role: 'student',
+              verificationStatus: 'verified'
+            })}
+            data-testid="demo-student-btn"
+          >
+            Explore as 400L Student
+          </button>
+          <button
+            type="button"
+            className="submit-button"
+            style={{ flex: 1, minWidth: '140px', background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-main)', fontSize: '0.8rem', padding: '0.55rem 0.6rem' }}
+            onClick={() => onAuthSuccess('demo-admin-token', {
+              _id: 'demo-admin-01',
+              fullName: 'PANS Executive (Demo Admin)',
+              email: 'pans.exec@live.unilag.edu.ng',
+              matricNumber: '180805599',
+              level: '500L',
+              department: 'CPH',
+              role: 'admin',
+              verificationStatus: 'verified'
+            })}
+            data-testid="demo-admin-btn"
+          >
+            Explore as PANS Admin
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
