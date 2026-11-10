@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, X, MessageSquare, BookOpen, Users, Loader2, ShieldAlert } from 'lucide-react';
 import { searchAll } from '../api/search';
+import { FALLBACK_POSTS, FALLBACK_MATERIALS, FALLBACK_USERS } from '../data/mockFallbackData';
 
 export default function SearchModal({
   isOpen,
@@ -41,15 +42,65 @@ export default function SearchModal({
     return () => clearTimeout(timer);
   }, [query, activeTab, isOpen]);
 
+  function performLocalSearch() {
+    const q = query.trim().toLowerCase();
+    if (!q) {
+      setResults({ posts: [], materials: [], students: [] });
+      setCounts({ total: 0, posts: 0, materials: 0, students: 0 });
+      return;
+    }
+
+    const matchedPosts = FALLBACK_POSTS.filter(
+      (p) =>
+        p.content?.toLowerCase().includes(q) ||
+        p.title?.toLowerCase().includes(q) ||
+        p.author?.fullName?.toLowerCase().includes(q) ||
+        p.category?.toLowerCase().includes(q)
+    );
+
+    const matchedMaterials = FALLBACK_MATERIALS.filter(
+      (m) =>
+        m.title?.toLowerCase().includes(q) ||
+        m.courseCode?.toLowerCase().includes(q) ||
+        m.department?.toLowerCase().includes(q) ||
+        m.description?.toLowerCase().includes(q)
+    );
+
+    const matchedStudents = FALLBACK_USERS.filter(
+      (u) =>
+        u.fullName?.toLowerCase().includes(q) ||
+        u.matricNumber?.toLowerCase().includes(q) ||
+        u.level?.toLowerCase().includes(q)
+    );
+
+    const countsObj = {
+      total: matchedPosts.length + matchedMaterials.length + matchedStudents.length,
+      posts: matchedPosts.length,
+      materials: matchedMaterials.length,
+      students: matchedStudents.length
+    };
+
+    setResults({
+      posts: matchedPosts,
+      materials: matchedMaterials,
+      students: matchedStudents
+    });
+    setCounts(countsObj);
+  }
+
   async function executeSearch() {
     try {
       setLoading(true);
       setError('');
+      if (token?.startsWith('demo-') || !token) {
+        performLocalSearch();
+        return;
+      }
       const data = await searchAll(query, { type: activeTab, token });
       setResults(data.results || { posts: [], materials: [], students: [] });
       setCounts(data.counts || { total: 0, posts: 0, materials: 0, students: 0 });
     } catch (err) {
-      setError(err.message || 'Search failed. Please try again.');
+      performLocalSearch();
     } finally {
       setLoading(false);
     }

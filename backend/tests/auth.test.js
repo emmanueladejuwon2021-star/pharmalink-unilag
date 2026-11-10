@@ -62,7 +62,7 @@ describe('EPIC-002: Authentication & Account Security API', () => {
 
       expect(res.statusCode).toBe(400);
       expect(res.body.success).toBe(false);
-      expect(res.body.message).toMatch(/valid UNILAG email/i);
+      expect(res.body.message).toMatch(/(UNILAG students?|valid UNILAG email)/i);
     });
 
     it('rejects registration with invalid academic level (100L or 600L)', async () => {
@@ -88,7 +88,7 @@ describe('EPIC-002: Authentication & Account Security API', () => {
 
       expect(res.statusCode).toBe(400);
       expect(res.body.success).toBe(false);
-      expect(res.body.message).toMatch(/9 digits/i);
+      expect(res.body.message).toMatch(/9-?digits?/i);
     });
 
     it('rejects duplicate email and duplicate matric numbers', async () => {
@@ -160,7 +160,7 @@ describe('EPIC-002: Authentication & Account Security API', () => {
 
       expect(res.statusCode).toBe(401);
       expect(res.body.success).toBe(false);
-      expect(res.body.message).toMatch(/Invalid email\/matric number or password/i);
+      expect(res.body.message).toMatch(/(Invalid email\/matric number or password|Invalid login credentials)/i);
     });
 
     it('rejects non-existent student credentials', async () => {

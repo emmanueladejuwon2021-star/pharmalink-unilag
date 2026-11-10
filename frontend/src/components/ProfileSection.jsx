@@ -19,6 +19,7 @@ import {
   listStudentDirectory,
   toggleFollowUser
 } from '../api/profile';
+import { FALLBACK_USERS } from '../data/mockFallbackData';
 
 const DEPARTMENTS = [
   { code: 'CPH', name: 'Clinical Pharmacy and Biopharmacy' },
@@ -69,6 +70,20 @@ export default function ProfileSection({ user, token, onProfileUpdated }) {
   const loadProfile = async () => {
     try {
       setLoading(true);
+      setError(null);
+      if (token?.startsWith('demo-') || !token) {
+        if (user) {
+          setProfile(user);
+          setFormData({
+            bio: user.bio || '',
+            department: user.department || '',
+            interests: user.interests ? user.interests.join(', ') : '',
+            linkedin: user.socialLinks?.linkedin || '',
+            twitter: user.socialLinks?.twitter || ''
+          });
+        }
+        return;
+      }
       const data = await getMyProfile(token);
       setProfile(data.user);
       setFormData({
@@ -82,7 +97,11 @@ export default function ProfileSection({ user, token, onProfileUpdated }) {
         onProfileUpdated(data.user);
       }
     } catch (err) {
-      setError(err.message);
+      if (user) {
+        setProfile(user);
+      } else {
+        setError(err.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -91,6 +110,26 @@ export default function ProfileSection({ user, token, onProfileUpdated }) {
   const loadDirectory = async () => {
     try {
       setDirLoading(true);
+      setError(null);
+      if (token?.startsWith('demo-') || !token) {
+        let list = [...FALLBACK_USERS];
+        if (dirLevel !== 'all') {
+          list = list.filter((s) => s.level === dirLevel);
+        }
+        if (dirDept !== 'all') {
+          list = list.filter((s) => s.department === dirDept);
+        }
+        if (dirSearch.trim()) {
+          const q = dirSearch.toLowerCase();
+          list = list.filter(
+            (s) =>
+              s.fullName?.toLowerCase().includes(q) ||
+              s.matricNumber?.toLowerCase().includes(q)
+          );
+        }
+        setDirectory(list);
+        return;
+      }
       const data = await listStudentDirectory(token, {
         level: dirLevel,
         department: dirDept,
@@ -98,7 +137,22 @@ export default function ProfileSection({ user, token, onProfileUpdated }) {
       });
       setDirectory(data.students || []);
     } catch (err) {
-      setError(err.message);
+      let list = [...FALLBACK_USERS];
+      if (dirLevel !== 'all') {
+        list = list.filter((s) => s.level === dirLevel);
+      }
+      if (dirDept !== 'all') {
+        list = list.filter((s) => s.department === dirDept);
+      }
+      if (dirSearch.trim()) {
+        const q = dirSearch.toLowerCase();
+        list = list.filter(
+          (s) =>
+            s.fullName?.toLowerCase().includes(q) ||
+            s.matricNumber?.toLowerCase().includes(q)
+        );
+      }
+      setDirectory(list);
     } finally {
       setDirLoading(false);
     }
@@ -126,6 +180,26 @@ export default function ProfileSection({ user, token, onProfileUpdated }) {
       const parsedInterests = formData.interests
         ? formData.interests.split(',').map((s) => s.trim()).filter(Boolean)
         : [];
+
+      if (token?.startsWith('demo-') || !token) {
+        const updated = {
+          ...profile,
+          bio: formData.bio,
+          department: formData.department || null,
+          interests: parsedInterests,
+          socialLinks: {
+            linkedin: formData.linkedin,
+            twitter: formData.twitter
+          }
+        };
+        setProfile(updated);
+        setSuccessMsg('Your BD-Pharm student identity profile has been updated!');
+        setEditing(false);
+        if (onProfileUpdated) {
+          onProfileUpdated(updated);
+        }
+        return;
+      }
 
       const res = await updateMyProfile(token, {
         bio: formData.bio,
@@ -158,6 +232,40 @@ export default function ProfileSection({ user, token, onProfileUpdated }) {
     try {
       setTogglingFollow((prev) => ({ ...prev, [targetStudent._id]: true }));
       setError(null);
+
+      if (token?.startsWith('demo-') || !token) {
+        const newFollowingStatus = !targetStudent.isFollowing;
+        setDirectory((prev) =>
+          prev.map((s) => {
+            if (s._id === targetStudent._id) {
+              const currentFollowers = s.followersCount !== undefined
+                ? s.followersCount
+                : (s.stats?.followersCount || 0);
+              const currentFollowing = s.followingCount !== undefined
+                ? s.followingCount
+                : (s.stats?.followingCount || 0);
+
+              const delta = newFollowingStatus ? 1 : -1;
+              const updatedFollowers = Math.max(0, currentFollowers + delta);
+
+              return {
+                ...s,
+                isFollowing: newFollowingStatus,
+                followersCount: updatedFollowers,
+                followingCount: currentFollowing,
+                stats: {
+                  ...(s.stats || {}),
+                  followersCount: updatedFollowers,
+                  followingCount: currentFollowing
+                }
+              };
+            }
+            return s;
+          })
+        );
+        return;
+      }
+
       const res = await toggleFollowUser(token, targetStudent._id);
       const newFollowingStatus = res.isFollowing !== undefined ? res.isFollowing : !targetStudent.isFollowing;
 

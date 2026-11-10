@@ -1719,3 +1719,35 @@ describe('EPIC-017: Moderation and Content Reporting System', () => {
     });
   });
   });
+
+
+describe('Static / Offline Fallback Mode (GitHub Pages / No Backend)', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    localStorage.clear();
+  });
+
+  it('renders gracefully when backend is unreachable without uncaught errors', async () => {
+    global.fetch = vi.fn().mockRejectedValue(new Error('Failed to fetch'));
+
+    render(<App />);
+
+    expect(screen.getByTestId('pharmalink-app')).toBeInTheDocument();
+    expect(screen.getByText(/Welcome to BD-Pharm/i)).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.getByTestId('api-status-offline')).toBeInTheDocument();
+      expect(screen.getByText(/API Detached/i)).toBeInTheDocument();
+    });
+
+    expect(screen.getByTestId('demo-student-btn')).toBeInTheDocument();
+    expect(screen.getByTestId('demo-admin-btn')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('demo-student-btn'));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Welcome back, Chidi Okafor/i)).toBeInTheDocument();
+      expect(screen.getByTestId('user-session-badge')).toHaveTextContent(/Chidi Okafor/i);
+    });
+  });
+});

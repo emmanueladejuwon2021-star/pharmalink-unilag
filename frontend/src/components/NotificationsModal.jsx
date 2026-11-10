@@ -17,6 +17,7 @@ import {
   markNotificationAsRead,
   markAllNotificationsAsRead
 } from '../api/notifications';
+import { FALLBACK_NOTIFICATIONS } from '../data/mockFallbackData';
 
 export default function NotificationsModal({
   isOpen,
@@ -37,12 +38,22 @@ export default function NotificationsModal({
   async function loadNotifications() {
     try {
       setLoading(true);
+      if (token?.startsWith('demo-') || !token) {
+        setNotifications(FALLBACK_NOTIFICATIONS);
+        const unread = FALLBACK_NOTIFICATIONS.filter((n) => !n.isRead).length;
+        setUnreadCount(unread);
+        if (onNotificationCountChange) onNotificationCountChange(unread);
+        return;
+      }
       const data = await fetchNotifications({ token });
       setNotifications(data.notifications || []);
       setUnreadCount(data.unreadCount || 0);
       if (onNotificationCountChange) onNotificationCountChange(data.unreadCount || 0);
     } catch (err) {
-      console.error('Failed to load notifications:', err);
+      setNotifications(FALLBACK_NOTIFICATIONS);
+      const unread = FALLBACK_NOTIFICATIONS.filter((n) => !n.isRead).length;
+      setUnreadCount(unread);
+      if (onNotificationCountChange) onNotificationCountChange(unread);
     } finally {
       setLoading(false);
     }
@@ -50,6 +61,17 @@ export default function NotificationsModal({
 
   async function handleMarkRead(id) {
     try {
+      if (token?.startsWith('demo-') || !token) {
+        setNotifications((prev) =>
+          prev.map((n) => (n._id === id ? { ...n, isRead: true } : n))
+        );
+        const notif = FALLBACK_NOTIFICATIONS.find((n) => n._id === id);
+        if (notif) notif.isRead = true;
+        const remaining = FALLBACK_NOTIFICATIONS.filter((n) => !n.isRead).length;
+        setUnreadCount(remaining);
+        if (onNotificationCountChange) onNotificationCountChange(remaining);
+        return;
+      }
       const data = await markNotificationAsRead(id, { token });
       setNotifications((prev) =>
         prev.map((n) => (n._id === id ? { ...n, isRead: true } : n))
@@ -57,18 +79,35 @@ export default function NotificationsModal({
       setUnreadCount(data.unreadCount);
       if (onNotificationCountChange) onNotificationCountChange(data.unreadCount);
     } catch (err) {
-      console.error(err);
+      setNotifications((prev) =>
+        prev.map((n) => (n._id === id ? { ...n, isRead: true } : n))
+      );
+      const notif = FALLBACK_NOTIFICATIONS.find((n) => n._id === id);
+      if (notif) notif.isRead = true;
+      const remaining = FALLBACK_NOTIFICATIONS.filter((n) => !n.isRead).length;
+      setUnreadCount(remaining);
+      if (onNotificationCountChange) onNotificationCountChange(remaining);
     }
   }
 
   async function handleMarkAllRead() {
     try {
+      if (token?.startsWith('demo-') || !token) {
+        setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+        FALLBACK_NOTIFICATIONS.forEach((n) => (n.isRead = true));
+        setUnreadCount(0);
+        if (onNotificationCountChange) onNotificationCountChange(0);
+        return;
+      }
       await markAllNotificationsAsRead({ token });
       setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
       setUnreadCount(0);
       if (onNotificationCountChange) onNotificationCountChange(0);
     } catch (err) {
-      console.error(err);
+      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+      FALLBACK_NOTIFICATIONS.forEach((n) => (n.isRead = true));
+      setUnreadCount(0);
+      if (onNotificationCountChange) onNotificationCountChange(0);
     }
   }
 

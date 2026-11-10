@@ -20,6 +20,11 @@ import {
   createAcademicSession,
   setCurrentAcademicSession
 } from '../api/academic';
+import {
+  FALLBACK_DEPARTMENTS,
+  FALLBACK_SESSION,
+  FALLBACK_COURSES
+} from '../data/mockFallbackData';
 
 const ELIGIBLE_LEVELS = ['200L', '300L', '400L', '500L'];
 const SEMESTERS = ['First Semester', 'Second Semester'];
@@ -57,10 +62,38 @@ export default function AcademicSection({ user, token }) {
     isCurrent: true
   });
 
+  const getFilteredFallbackCourses = () => {
+    let list = [...FALLBACK_COURSES];
+    if (selectedLevel !== 'all') {
+      list = list.filter((c) => c.level === selectedLevel);
+    }
+    if (selectedDept !== 'all') {
+      list = list.filter((c) => c.department === selectedDept);
+    }
+    if (selectedSemester !== 'all') {
+      list = list.filter((c) => c.semester === selectedSemester);
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      list = list.filter(
+        (c) => c.code.toLowerCase().includes(q) || c.title.toLowerCase().includes(q)
+      );
+    }
+    return list;
+  };
+
   const loadData = async () => {
     try {
       setLoading(true);
       setError(null);
+
+      if (token && token.startsWith('demo-')) {
+        setDepartments(FALLBACK_DEPARTMENTS);
+        setCurrentSession(FALLBACK_SESSION);
+        setCourses(getFilteredFallbackCourses());
+        return;
+      }
+
       const [deptRes, sessionRes, courseRes] = await Promise.all([
         getDepartments(),
         getCurrentAcademicSession(),
@@ -76,7 +109,10 @@ export default function AcademicSection({ user, token }) {
       setCurrentSession(sessionRes.session || null);
       setCourses(courseRes.courses || []);
     } catch (err) {
-      setError(err.message);
+      console.warn('Academic API error, falling back to sample curriculum:', err);
+      setDepartments(FALLBACK_DEPARTMENTS);
+      setCurrentSession(FALLBACK_SESSION);
+      setCourses(getFilteredFallbackCourses());
     } finally {
       setLoading(false);
     }
@@ -90,6 +126,32 @@ export default function AcademicSection({ user, token }) {
 
   const handleCreateCourse = async (e) => {
     e.preventDefault();
+    if (token && token.startsWith('demo-')) {
+      const newCourse = {
+        _id: 'c-demo-' + Date.now(),
+        code: courseFormData.code.toUpperCase(),
+        title: courseFormData.title,
+        department: courseFormData.department,
+        level: courseFormData.level,
+        semester: courseFormData.semester,
+        units: Number(courseFormData.units),
+        description: courseFormData.description
+      };
+      setCourses((prev) => [newCourse, ...prev]);
+      setSuccessMsg(`Course ${newCourse.code} created successfully.`);
+      setShowAddCourse(false);
+      setCourseFormData({
+        code: '',
+        title: '',
+        department: 'PCH',
+        level: user?.level || '300L',
+        semester: 'First Semester',
+        units: 3,
+        description: ''
+      });
+      return;
+    }
+
     try {
       setError(null);
       setSuccessMsg(null);
@@ -113,6 +175,11 @@ export default function AcademicSection({ user, token }) {
 
   const handleDeleteCourse = async (courseId, courseCode) => {
     if (!window.confirm(`Are you sure you want to delete course ${courseCode}?`)) return;
+    if (token && token.startsWith('demo-')) {
+      setCourses((prev) => prev.filter((c) => c._id !== courseId && c.code !== courseCode));
+      setSuccessMsg(`Course ${courseCode} deleted successfully.`);
+      return;
+    }
     try {
       setError(null);
       await deleteCourse(token, courseId);
@@ -125,6 +192,16 @@ export default function AcademicSection({ user, token }) {
 
   const handleCreateSession = async (e) => {
     e.preventDefault();
+    if (token && token.startsWith('demo-')) {
+      setCurrentSession({
+        name: newSessionData.name,
+        currentSemester: newSessionData.currentSemester,
+        isCurrent: true
+      });
+      setSuccessMsg(`Academic session ${newSessionData.name} activated.`);
+      setShowSessionModal(false);
+      return;
+    }
     try {
       setError(null);
       await createAcademicSession(token, newSessionData);

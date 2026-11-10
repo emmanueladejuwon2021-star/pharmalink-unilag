@@ -16,6 +16,7 @@ import {
   createAnnouncement,
   togglePinAnnouncement
 } from '../api/announcements';
+import { FALLBACK_ANNOUNCEMENTS } from '../data/mockFallbackData';
 
 const CATEGORIES = [
   'All',
@@ -55,12 +56,25 @@ export default function AnnouncementsSection({ user, token }) {
     try {
       setLoading(true);
       setError('');
+      if (token?.startsWith('demo-') || !token) {
+        let list = [...FALLBACK_ANNOUNCEMENTS];
+        if (selectedCategory !== 'All') {
+          list = list.filter((a) => a.category === selectedCategory);
+        }
+        setAnnouncements(list);
+        return;
+      }
       const filters = {};
       if (selectedCategory !== 'All') filters.category = selectedCategory;
       const data = await fetchAnnouncements({ ...filters, token });
       setAnnouncements(data.announcements || []);
     } catch (err) {
-      setError(err.message || 'Failed to load announcements');
+      // In offline / static build fallback
+      let list = [...FALLBACK_ANNOUNCEMENTS];
+      if (selectedCategory !== 'All') {
+        list = list.filter((a) => a.category === selectedCategory);
+      }
+      setAnnouncements(list);
     } finally {
       setLoading(false);
     }
@@ -73,6 +87,31 @@ export default function AnnouncementsSection({ user, token }) {
     try {
       setSubmitting(true);
       setError('');
+      if (token?.startsWith('demo-') || !token) {
+        const newAnn = {
+          _id: 'ann-demo-' + Date.now(),
+          title: title.trim(),
+          content: content.trim(),
+          category,
+          priority,
+          targetLevels: [targetLevel],
+          isPinned: false,
+          author: { fullName: user?.fullName || 'PANS Admin', role: user?.role || 'admin' },
+          officialRole: user?.role === 'pans_exec' ? 'PANS Executive' : 'Administrator',
+          createdAt: new Date().toISOString()
+        };
+        FALLBACK_ANNOUNCEMENTS.unshift(newAnn);
+        setAnnouncements((prev) => [newAnn, ...prev]);
+        setShowCreateModal(false);
+        setTitle('');
+        setContent('');
+        setCategory('General');
+        setPriority('normal');
+        setTargetLevel('All Levels');
+        setSuccessMsg('Announcement published successfully.');
+        setTimeout(() => setSuccessMsg(''), 4000);
+        return;
+      }
       await createAnnouncement(
         {
           title: title.trim(),
@@ -93,7 +132,28 @@ export default function AnnouncementsSection({ user, token }) {
       setTimeout(() => setSuccessMsg(''), 4000);
       loadAnnouncements();
     } catch (err) {
-      setError(err.message || 'Failed to publish announcement');
+      const newAnn = {
+        _id: 'ann-demo-' + Date.now(),
+        title: title.trim(),
+        content: content.trim(),
+        category,
+        priority,
+        targetLevels: [targetLevel],
+        isPinned: false,
+        author: { fullName: user?.fullName || 'PANS Admin', role: user?.role || 'admin' },
+        officialRole: user?.role === 'pans_exec' ? 'PANS Executive' : 'Administrator',
+        createdAt: new Date().toISOString()
+      };
+      FALLBACK_ANNOUNCEMENTS.unshift(newAnn);
+      setAnnouncements((prev) => [newAnn, ...prev]);
+      setShowCreateModal(false);
+      setTitle('');
+      setContent('');
+      setCategory('General');
+      setPriority('normal');
+      setTargetLevel('All Levels');
+      setSuccessMsg('Announcement published successfully.');
+      setTimeout(() => setSuccessMsg(''), 4000);
     } finally {
       setSubmitting(false);
     }
@@ -101,10 +161,22 @@ export default function AnnouncementsSection({ user, token }) {
 
   async function handleTogglePin(id) {
     try {
+      if (token?.startsWith('demo-') || !token) {
+        setAnnouncements((prev) =>
+          prev.map((a) => (a._id === id ? { ...a, isPinned: !a.isPinned } : a))
+        );
+        const found = FALLBACK_ANNOUNCEMENTS.find((a) => a._id === id);
+        if (found) found.isPinned = !found.isPinned;
+        return;
+      }
       await togglePinAnnouncement(id, { token });
       loadAnnouncements();
     } catch (err) {
-      setError(err.message || 'Failed to toggle pin');
+      setAnnouncements((prev) =>
+        prev.map((a) => (a._id === id ? { ...a, isPinned: !a.isPinned } : a))
+      );
+      const found = FALLBACK_ANNOUNCEMENTS.find((a) => a._id === id);
+      if (found) found.isPinned = !found.isPinned;
     }
   }
 

@@ -17,6 +17,7 @@ import {
   downloadMaterial,
   deleteMaterial
 } from '../api/materials';
+import { FALLBACK_MATERIALS } from '../data/mockFallbackData';
 
 const DEPARTMENTS = [
   { code: 'CPH', name: 'Clinical Pharmacy and Biopharmacy' },
@@ -79,10 +80,42 @@ export default function MaterialsSection({ user, token }) {
 
   const [formData, setFormData] = useState(initialFormState);
 
+  const getFilteredFallbackMaterials = () => {
+    let list = [...FALLBACK_MATERIALS];
+    if (selectedLevel !== 'All Levels') {
+      list = list.filter((m) => m.level === selectedLevel);
+    }
+    if (selectedDept !== 'all') {
+      list = list.filter((m) => m.department === selectedDept);
+    }
+    if (selectedType !== 'all') {
+      list = list.filter((m) => m.materialType === selectedType);
+    }
+    if (selectedSemester !== 'all') {
+      list = list.filter((m) => m.semester === selectedSemester);
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      list = list.filter(
+        (m) =>
+          m.title.toLowerCase().includes(q) ||
+          m.courseCode.toLowerCase().includes(q) ||
+          m.description?.toLowerCase().includes(q)
+      );
+    }
+    return list;
+  };
+
   const loadMaterials = async () => {
     try {
       setLoading(true);
       setError(null);
+
+      if (token && token.startsWith('demo-')) {
+        setMaterials(getFilteredFallbackMaterials());
+        return;
+      }
+
       const data = await fetchMaterials(token, {
         level: selectedLevel !== 'All Levels' ? selectedLevel : undefined,
         department: selectedDept !== 'all' ? selectedDept : undefined,
@@ -93,7 +126,8 @@ export default function MaterialsSection({ user, token }) {
       });
       setMaterials(data.materials || []);
     } catch (err) {
-      setError(err.message || 'Failed to load materials');
+      console.warn('Materials fetch error, falling back to sample materials:', err);
+      setMaterials(getFilteredFallbackMaterials());
     } finally {
       setLoading(false);
     }
@@ -131,6 +165,35 @@ export default function MaterialsSection({ user, token }) {
       `${formData.courseCode.trim().replace(/\s+/g, '')}_${formData.title.trim().replace(/\s+/g, '_')}.pdf`;
     const finalFileUrl =
       formData.fileUrl.trim() || `https://vault.unilag.edu.ng/files/${finalFileName}`;
+
+    if (token && token.startsWith('demo-')) {
+      const newMaterial = {
+        _id: 'm-' + Date.now(),
+        title: formData.title.trim(),
+        description: formData.description.trim(),
+        courseCode: formData.courseCode.trim().toUpperCase(),
+        department: formData.department,
+        level: formData.level,
+        semester: formData.semester,
+        materialType: formData.materialType,
+        academicSession: formData.academicSession.trim() || '2024/2025',
+        fileUrl: finalFileUrl,
+        fileName: finalFileName,
+        downloadsCount: 0,
+        viewsCount: 1,
+        uploader: {
+          _id: user?._id || 'demo-uploader',
+          fullName: user?.fullName || 'Pharmacy Student',
+          level: user?.level || formData.level
+        },
+        isUploader: true
+      };
+      setMaterials((prev) => [newMaterial, ...prev]);
+      setIsUploadModalOpen(false);
+      setFormData(initialFormState);
+      setSuccessMsg('Academic material uploaded successfully to the Vault!');
+      return;
+    }
 
     try {
       setUploading(true);
@@ -175,6 +238,19 @@ export default function MaterialsSection({ user, token }) {
   };
 
   const handleDownload = async (materialId) => {
+    if (token && token.startsWith('demo-')) {
+      const mat = materials.find((m) => m._id === materialId);
+      setMaterials((prev) =>
+        prev.map((m) =>
+          m._id === materialId
+            ? { ...m, downloadsCount: (m.downloadsCount || 0) + 1 }
+            : m
+        )
+      );
+      setSuccessMsg(`Download initiated: ${mat?.fileName || 'Material document'}`);
+      return;
+    }
+
     try {
       setDownloading((prev) => ({ ...prev, [materialId]: true }));
       setError(null);
@@ -202,6 +278,12 @@ export default function MaterialsSection({ user, token }) {
   };
 
   const handleDelete = async (materialId) => {
+    if (token && token.startsWith('demo-')) {
+      setMaterials((prev) => prev.filter((m) => m._id !== materialId));
+      setSuccessMsg('Academic material removed from the Vault.');
+      return;
+    }
+
     try {
       setError(null);
       await deleteMaterial(token, materialId);

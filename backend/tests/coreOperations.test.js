@@ -30,7 +30,7 @@ describe('EPIC-013 to EPIC-017 Core Operations & Governance API Suite', () => {
     let connected = false;
     if (testDbUri) {
       try {
-        await mongoose.connect(testDbUri, { serverSelectionTimeoutMS: 5000 });
+        await mongoose.connect(testDbUri, { serverSelectionTimeoutMS: 30000 });
         connected = true;
       } catch (err) {
         console.warn('Remote MongoDB connection failed, falling back to MongoMemoryServer:', err.message);

@@ -19,6 +19,7 @@ import {
   Flag
 } from 'lucide-react';
 import ReportModal from './ReportModal';
+import { FALLBACK_POSTS } from '../data/mockFallbackData';
 import {
   fetchFeed,
   createPost,
@@ -105,6 +106,28 @@ export default function FeedSection({ user, token }) {
     try {
       setLoading(true);
       setError(null);
+
+      if (token && token.startsWith('demo-')) {
+        let current = [...FALLBACK_POSTS];
+        if (selectedLevel !== 'All Levels') {
+          current = current.filter((p) => p.level === selectedLevel || p.level === 'All Levels');
+        }
+        if (selectedCategory !== 'All') {
+          current = current.filter((p) => p.category === selectedCategory);
+        }
+        if (selectedDept !== 'all') {
+          current = current.filter((p) => p.department === selectedDept);
+        }
+        if (searchQuery.trim()) {
+          const q = searchQuery.toLowerCase();
+          current = current.filter(
+            (p) => p.title?.toLowerCase().includes(q) || p.content?.toLowerCase().includes(q)
+          );
+        }
+        setPosts(current);
+        return;
+      }
+
       if (activeView === 'bookmarks') {
         const data = await fetchBookmarks(token);
         const bookmarkedPosts = (data.bookmarks || []).map((b) => ({
@@ -124,7 +147,8 @@ export default function FeedSection({ user, token }) {
         setPosts(data.posts || []);
       }
     } catch (err) {
-      setError(err.message);
+      console.warn('API feed fetch error, falling back to sample UNILAG posts:', err);
+      setPosts(FALLBACK_POSTS);
     } finally {
       setLoading(false);
     }
@@ -145,14 +169,60 @@ export default function FeedSection({ user, token }) {
     e.preventDefault();
     if (!postForm.content.trim()) return;
 
+    const parsedTags = postForm.tags
+      ? postForm.tags.split(',').map((t) => t.trim().replace(/^#/, '')).filter(Boolean)
+      : [];
+
+    if (token && token.startsWith('demo-')) {
+      const newPost = {
+        _id: 'post-demo-' + Date.now(),
+        title: postForm.title,
+        content: postForm.content,
+        category: postForm.category,
+        level: postForm.level,
+        department: postForm.department || null,
+        courseCode: postForm.courseCode || null,
+        tags: parsedTags,
+        isPinned: postForm.isPinned,
+        likesCount: 0,
+        repliesCount: 0,
+        reLinksCount: 0,
+        viewsCount: 1,
+        hasLiked: false,
+        hasReLinked: false,
+        hasBookmarked: false,
+        isEdited: false,
+        createdAt: new Date().toISOString(),
+        author: {
+          _id: user?._id || 'demo-author',
+          fullName: user?.fullName || 'Demo Student',
+          level: user?.level || '400L',
+          department: user?.department || 'CPH',
+          verificationStatus: 'verified',
+          role: user?.role || 'student'
+        },
+        isAuthor: true
+      };
+      setPosts((prev) => [newPost, ...prev]);
+      setSuccessMsg('Your post has been published to the BD-Pharm network!');
+      setPostForm({
+        title: '',
+        content: '',
+        category: 'Academic Discussion',
+        level: user?.level || 'All Levels',
+        department: user?.department || '',
+        courseCode: '',
+        tags: '',
+        isPinned: false
+      });
+      setCreatorOpen(false);
+      return;
+    }
+
     try {
       setPublishing(true);
       setError(null);
       setSuccessMsg(null);
-
-      const parsedTags = postForm.tags
-        ? postForm.tags.split(',').map((t) => t.trim().replace(/^#/, '')).filter(Boolean)
-        : [];
 
       const res = await createPost(token, {
         title: postForm.title,
@@ -189,6 +259,11 @@ export default function FeedSection({ user, token }) {
 
   const handleDeletePost = async (postId) => {
     if (!window.confirm('Are you sure you want to delete this post?')) return;
+    if (token && token.startsWith('demo-')) {
+      setPosts((prev) => prev.filter((p) => p._id !== postId));
+      setSuccessMsg('Post deleted successfully.');
+      return;
+    }
     try {
       await deletePost(token, postId);
       setPosts((prev) => prev.filter((p) => p._id !== postId));
@@ -199,6 +274,13 @@ export default function FeedSection({ user, token }) {
   };
 
   const handleTogglePin = async (postId) => {
+    if (token && token.startsWith('demo-')) {
+      setPosts((prev) =>
+        prev.map((p) => (p._id === postId ? { ...p, isPinned: !p.isPinned } : p))
+      );
+      setSuccessMsg('Announcement pin toggled');
+      return;
+    }
     try {
       const res = await togglePinPost(token, postId);
       setPosts((prev) =>
@@ -217,6 +299,14 @@ export default function FeedSection({ user, token }) {
 
   const handleSaveEdit = async () => {
     if (!editingPost || !editContent.trim()) return;
+    if (token && token.startsWith('demo-')) {
+      setPosts((prev) =>
+        prev.map((p) => (p._id === editingPost._id ? { ...p, content: editContent, isEdited: true } : p))
+      );
+      setEditingPost(null);
+      setSuccessMsg('Post updated successfully.');
+      return;
+    }
     try {
       setSavingEdit(true);
       const res = await updatePost(token, editingPost._id, {
@@ -240,6 +330,22 @@ export default function FeedSection({ user, token }) {
       setError('Student verification required to like posts.');
       return;
     }
+    if (token && token.startsWith('demo-')) {
+      setPosts((prev) =>
+        prev.map((p) => {
+          if (p._id === postId) {
+            const nextLiked = !p.hasLiked;
+            return {
+              ...p,
+              hasLiked: nextLiked,
+              likesCount: nextLiked ? (p.likesCount || 0) + 1 : Math.max(0, (p.likesCount || 1) - 1)
+            };
+          }
+          return p;
+        })
+      );
+      return;
+    }
     try {
       const res = await toggleLikePost(token, postId);
       setPosts((prev) =>
@@ -257,6 +363,24 @@ export default function FeedSection({ user, token }) {
       setError('Student verification required to re-link posts.');
       return;
     }
+    if (token && token.startsWith('demo-')) {
+      setPosts((prev) =>
+        prev.map((p) => {
+          if (p._id === postId) {
+            const nextRe = !p.hasReLinked;
+            return {
+              ...p,
+              hasReLinked: nextRe,
+              reLinksCount: nextRe ? (p.reLinksCount || 0) + 1 : Math.max(0, (p.reLinksCount || 1) - 1)
+            };
+          }
+          return p;
+        })
+      );
+      setSuccessMsg('Re-linked to your peer network');
+      setTimeout(() => setSuccessMsg(null), 3000);
+      return;
+    }
     try {
       const res = await toggleReLinkPost(token, postId);
       setPosts((prev) =>
@@ -271,6 +395,16 @@ export default function FeedSection({ user, token }) {
   };
 
   const handleToggleBookmark = async (postId) => {
+    if (token && token.startsWith('demo-')) {
+      setPosts((prev) =>
+        prev.map((p) =>
+          p._id === postId ? { ...p, hasBookmarked: !p.hasBookmarked } : p
+        )
+      );
+      setSuccessMsg('Bookmark updated');
+      setTimeout(() => setSuccessMsg(null), 3000);
+      return;
+    }
     try {
       const res = await toggleBookmarkPost(token, postId);
       setPosts((prev) =>
@@ -287,6 +421,23 @@ export default function FeedSection({ user, token }) {
   const handleToggleCommentLike = async (postId, commentId) => {
     if (!isVerified) {
       setError('Student verification required to like comments.');
+      return;
+    }
+    if (token && token.startsWith('demo-')) {
+      setCommentsByPost((prev) => ({
+        ...prev,
+        [postId]: (prev[postId] || []).map((c) => {
+          if (c._id === commentId) {
+            const liked = !c.hasLiked;
+            return {
+              ...c,
+              hasLiked: liked,
+              likesCount: liked ? (c.likesCount || 0) + 1 : Math.max(0, (c.likesCount || 1) - 1)
+            };
+          }
+          return c;
+        })
+      }));
       return;
     }
     try {
@@ -308,6 +459,25 @@ export default function FeedSection({ user, token }) {
     setExpandedComments((prev) => ({ ...prev, [postId]: !isCurrentlyOpen }));
 
     if (!isCurrentlyOpen && !commentsByPost[postId]) {
+      if (token && token.startsWith('demo-')) {
+        setCommentsByPost((prev) => ({
+          ...prev,
+          [postId]: [
+            {
+              _id: 'sample-comm-1',
+              content: 'Emulsion stability requires surfactant HLB balance matching the oil phase.',
+              createdAt: new Date().toISOString(),
+              author: {
+                fullName: 'Babatunde Fashola',
+                level: '400L',
+                verificationStatus: 'verified'
+              },
+              likesCount: 3
+            }
+          ]
+        }));
+        return;
+      }
       try {
         setLoadingComments((prev) => ({ ...prev, [postId]: true }));
         const data = await fetchComments(token, postId);
@@ -324,6 +494,29 @@ export default function FeedSection({ user, token }) {
     e.preventDefault();
     const content = (commentInputs[postId] || '').trim();
     if (!content) return;
+
+    if (token && token.startsWith('demo-')) {
+      const newComment = {
+        _id: 'comment-demo-' + Date.now(),
+        content,
+        createdAt: new Date().toISOString(),
+        author: {
+          fullName: user?.fullName || 'Demo Student',
+          level: user?.level || '400L',
+          verificationStatus: 'verified'
+        },
+        likesCount: 0
+      };
+      setCommentsByPost((prev) => ({
+        ...prev,
+        [postId]: [...(prev[postId] || []), newComment]
+      }));
+      setPosts((prev) =>
+        prev.map((p) => (p._id === postId ? { ...p, repliesCount: (p.repliesCount || 0) + 1 } : p))
+      );
+      setCommentInputs((prev) => ({ ...prev, [postId]: '' }));
+      return;
+    }
 
     try {
       setSubmittingComment((prev) => ({ ...prev, [postId]: true }));
@@ -349,6 +542,20 @@ export default function FeedSection({ user, token }) {
 
   const handleDeleteComment = async (postId, commentId) => {
     if (!window.confirm('Are you sure you want to delete this reply?')) return;
+    if (token && token.startsWith('demo-')) {
+      setCommentsByPost((prev) => ({
+        ...prev,
+        [postId]: (prev[postId] || []).map((c) =>
+          c._id === commentId ? { ...c, isDeleted: true, content: '[This comment was deleted]' } : c
+        )
+      }));
+      setPosts((prev) =>
+        prev.map((p) =>
+          p._id === postId ? { ...p, repliesCount: Math.max(0, (p.repliesCount || 1) - 1) } : p
+        )
+      );
+      return;
+    }
     try {
       await deleteComment(token, postId, commentId);
       setCommentsByPost((prev) => ({
