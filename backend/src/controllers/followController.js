@@ -11,8 +11,8 @@ async function toggleFollowUser(req, res, next) {
     const user = req.user;
     const { id } = req.params;
 
-    // Strict boundary: verified students (or admins) only can follow peers
-    if (user.verificationStatus !== 'verified' && user.role !== 'admin') {
+    // Strict boundary: verified students (or admins/moderators) only can follow peers
+    if (user.verificationStatus !== 'verified' && user.role !== 'admin' && user.role !== 'moderator') {
       return res.status(403).json({
         success: false,
         message: 'Access restricted to verified UNILAG Pharmacy students.'
