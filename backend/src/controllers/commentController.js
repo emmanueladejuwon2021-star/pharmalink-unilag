@@ -13,7 +13,7 @@ async function createComment(req, res, next) {
     const user = req.user;
 
     // Strict boundary: verified UNILAG students only can participate in discussions
-    if (user.verificationStatus !== 'verified' && user.role !== 'admin') {
+    if (user.verificationStatus !== 'verified' && user.role !== 'admin' && user.role !== 'moderator') {
       return res.status(403).json({
         success: false,
         message: 'Student verification required to comment on discussions.'
