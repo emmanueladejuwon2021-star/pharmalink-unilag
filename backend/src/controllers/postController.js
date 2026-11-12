@@ -469,10 +469,11 @@ async function deletePost(req, res, next) {
     post.isDeleted = true;
     await post.save();
 
-    // Decrement author post count (prevent negative)
-    await User.findByIdAndUpdate(post.author, {
-      $inc: { 'stats.postsCount': -1 }
-    });
+    // Decrement author post count only if currently > 0 (schema min does not protect $inc)
+    await User.updateOne(
+      { _id: post.author, 'stats.postsCount': { $gt: 0 } },
+      { $inc: { 'stats.postsCount': -1 } }
+    );
 
     return res.status(200).json({
       success: true,
